@@ -239,28 +239,29 @@ opps_left:GetPropertyChangedSignal("Visible"):Connect(function() --opps refused 
 end)
 
 align_dir.ChildAdded:Connect(function(ui)--play buttons
-	label.Text = 1
 	if is_in_game then
-		label.Text =2
 		if ui.Name == "Bottom Middle Template" or ui.Name == "Bottom Middle" then
-			label.Text =3
+
 			repeat task.wait()
 			until (ui.Name == "Bottom Middle" and align_dir["Top Middle"]) or not ui
-			label.Text =4
+
 			if not ui then return end
-			label.Text =5
+			label.Text =1
 			if not balls_container then
+				label.Text =2
 				for _, _arena in pairs(arenas_fldr:GetChildren()) do
 					if _arena.ArenaTemplate then
+						label.Text =3
 						if _arena.ArenaTemplate.Red.Character.Nametag.Frame.Nickname.Text == "@" .. plr.Name then
+							label.Text =4
 							balls_container = _arena.ArenaTemplate.Important.Balls
 						end
 					end
 				end
 			end
-			label.Text =6
+
 			local btns = ui.Buttons
-			label.Text =7
+
 			local board = {
 				{ "","","","","","" }, -- column 1 
 				{ "","","","","","" }, -- column 2 
@@ -284,13 +285,13 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 
 				end
 			end
-			label.Text =8
+
 			local best_move = getBestMove(board)
-			label.Text =9
+
 			for _, conn in ipairs(getconnections(btns["Drop_" .. best_move].MouseButton1Click)) do
 				conn:Fire()
 			end
-			label.Text =10
+
 		end
 	end
 end)
