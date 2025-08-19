@@ -11,19 +11,10 @@ local opps_paying = waiting_4_opp_window.Background["Step2"]
 local opps_paid = waiting_4_opp_window.Background["Step3"]
 local game_confirmed = waiting_4_opp_window.Background["Step3.5"]
 
-
-
 local align_dir = plr_gui.Align
 local arenas_fldr = workspace.ArenasREAL
 
 local balls_container --where the balls are added container
-
-
---[[
-for i = 11, 76 do
-    ball_poses[i] = .Position
-end
-]]
 
 local battle_results = plr_gui.BattleResults["Middle Middle"]
 
@@ -32,8 +23,6 @@ local is_in_game = false
 
 ------------------------// Align ai stuff //------------------------
 -- BOT is always red
-
-
 local ROWS = 6
 local COLS = 7
 local BOT = "r"
@@ -250,14 +239,16 @@ opps_left:GetPropertyChangedSignal("Visible"):Connect(function() --opps refused 
 end)
 
 align_dir.ChildAdded:Connect(function(ui)--play buttons
+	label.Text = 1
 	if is_in_game then
+		label.Text =2
 		if ui.Name == "Bottom Middle Template" or ui.Name == "Bottom Middle" then
-
+			label.Text =3
 			repeat task.wait()
 			until (ui.Name == "Bottom Middle" and align_dir["Top Middle"]) or not ui
-
+			label.Text =4
 			if not ui then return end
-
+			label.Text =5
 			if not balls_container then
 				for _, _arena in pairs(arenas_fldr:GetChildren()) do
 					if _arena.ArenaTemplate then
@@ -267,9 +258,9 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 					end
 				end
 			end
-
+			label.Text =6
 			local btns = ui.Buttons
-
+			label.Text =7
 			local board = {
 				{ "","","","","","" }, -- column 1 
 				{ "","","","","","" }, -- column 2 
@@ -293,13 +284,13 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 
 				end
 			end
-
+			label.Text =8
 			local best_move = getBestMove(board)
-
+			label.Text =9
 			for _, conn in ipairs(getconnections(btns["Drop_" .. best_move].MouseButton1Click)) do
 				conn:Fire()
 			end
-
+			label.Text =10
 		end
 	end
 end)
@@ -308,7 +299,7 @@ end)
 battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
 	if child.Name == "_tmp" then
 
-		label.Text = tonumber(label.Text)+1
+		--label.Text = tonumber(label.Text)+1
 
 		repeat task.wait()
 		until child.Background or not child
