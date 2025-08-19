@@ -32,138 +32,121 @@ local is_in_game = false
 
 ------------------------// Align ai stuff //------------------------
 -- BOT is always red
-local botMark = "r"
-local oppMark = "b"
-local ROWS, COLS = 6, 7
 
--- Check if a move is valid
-local function isValidMove(board, col)
-    return board[col][ROWS] == ""
+
+local ROWS = 6
+local COLS = 7
+local BOT = "r"
+local OPP = "b"
+local MAX_DEPTH = 8 -- full depth is 42 for perfect play
+
+-- convert board table to bitboard numbers
+local function boardToBitboards(board)
+	local botBoard = 0
+	local maskBoard = 0
+	local bit = 1
+
+	for r = 1, ROWS do
+		for c = 1, COLS do
+			local cell = board[c][r]
+			if cell ~= "" then
+				maskBoard = maskBoard | bit
+				if cell == BOT then
+					botBoard = botBoard | bit
+				end
+			end
+			bit = bit << 1
+		end
+	end
+	return botBoard, maskBoard
 end
 
--- Get the next empty row in a column
-local function getNextRow(board, col)
-    for r = 1, ROWS do
-        if board[col][r] == "" then
-            return r
-        end
-    end
-    return nil
+-- check if column is playable
+local function canPlay(maskBoard, col)
+	for r = 1, ROWS do
+		local bit = 1 << ((col-1)*ROWS + (r-1))
+		if (maskBoard & bit) == 0 then
+			return true
+		end
+	end
+	return false
 end
 
--- Drop a piece
-local function makeMove(board, col, mark)
-    local row = getNextRow(board, col)
-    if row then
-        board[col][row] = mark
-        return row
-    end
-    return nil
+-- play a move, return new bitboards
+local function playMove(botBoard, maskBoard, col, isBotTurn)
+	local bit = 1 << ((col-1)*ROWS) -- bottom row bit
+	while (maskBoard & bit) ~= 0 do
+		bit = bit << 1
+	end
+	maskBoard = maskBoard | bit
+	if isBotTurn then
+		botBoard = botBoard | bit
+	end
+	return botBoard, maskBoard
 end
 
--- Undo a move
-local function undoMove(board, col)
-    for r = ROWS, 1, -1 do
-        if board[col][r] ~= "" then
-            board[col][r] = ""
-            break
-        end
-    end
+-- check win using bitwise shift method
+local function isWinning(bitboard)
+	local directions = {1, ROWS, ROWS+1, ROWS-1} -- horizontal, vertical, diag1, diag2
+	for _, dir in ipairs(directions) do
+		local b = bitboard & (bitboard >> dir)
+		if (b & (b >> (2*dir))) ~= 0 then
+			return true
+		end
+	end
+	return false
 end
 
--- Check for a win
-local function checkWinner(board, mark)
-    -- horizontal
-    for r = 1, ROWS do
-        for c = 1, COLS-3 do
-            if board[c][r]==mark and board[c+1][r]==mark and board[c+2][r]==mark and board[c+3][r]==mark then
-                return true
-            end
-        end
-    end
-    -- vertical
-    for c = 1, COLS do
-        for r = 1, ROWS-3 do
-            if board[c][r]==mark and board[c][r+1]==mark and board[c][r+2]==mark and board[c][r+3]==mark then
-                return true
-            end
-        end
-    end
-    -- diagonal /
-    for r = 1, ROWS-3 do
-        for c = 1, COLS-3 do
-            if board[c][r]==mark and board[c+1][r+1]==mark and board[c+2][r+2]==mark and board[c+3][r+3]==mark then
-                return true
-            end
-        end
-    end
-    -- diagonal \
-    for r = 4, ROWS do
-        for c = 1, COLS-3 do
-            if board[c][r]==mark and board[c+1][r-1]==mark and board[c+2][r-2]==mark and board[c+3][r-3]==mark then
-                return true
-            end
-        end
-    end
-    return false
+-- simple evaluation
+local function evaluate(botBoard, maskBoard)
+	if isWinning(botBoard) then return 100000 end
+	if isWinning(maskBoard ~ botBoard) then return -100000 end
+	return 0
 end
 
--- Check if the board is full
-local function isBoardFull(board)
-    for c = 1, COLS do
-        if isValidMove(board, c) then return false end
-    end
-    return true
+-- negamax with alpha-beta
+local function negamax(botBoard, maskBoard, depth, alpha, beta, isBotTurn)
+	local score = evaluate(botBoard, maskBoard)
+	if math.abs(score) >= 100000 or depth == 0 then
+		return score
+	end
+
+	local bestScore = -math.huge
+	for _, col in ipairs({4,3,5,2,6,1,7}) do -- center-first ordering
+		if canPlay(maskBoard, col) then
+			local newBot, newMask = playMove(botBoard, maskBoard, col, isBotTurn)
+			local val = -negamax(newBot, newMask, depth-1, -beta, -alpha, not isBotTurn)
+			if val > bestScore then
+				bestScore = val
+			end
+			alpha = math.max(alpha, val)
+			if alpha >= beta then
+				break
+			end
+		end
+	end
+	return bestScore
 end
 
--- Minimax with alpha-beta pruning (search until terminal state)
-local function minimax(board, maximizingPlayer, alpha, beta)
-    if checkWinner(board, botMark) then return nil, 1000000 end
-    if checkWinner(board, oppMark) then return nil, -1000000 end
-    if isBoardFull(board) then return nil, 0 end
-
-    local validCols = {}
-    for c = 1, COLS do
-        if isValidMove(board, c) then table.insert(validCols, c) end
-    end
-
-    local bestCol = validCols[1]
-    if maximizingPlayer then
-        local value = -math.huge
-        for _, col in ipairs(validCols) do
-            makeMove(board, col, botMark)
-            local _, score = minimax(board, false, alpha, beta)
-            undoMove(board, col)
-            if score > value then
-                value = score
-                bestCol = col
-            end
-            alpha = math.max(alpha, value)
-            if alpha >= beta then break end
-        end
-        return bestCol, value
-    else
-        local value = math.huge
-        for _, col in ipairs(validCols) do
-            makeMove(board, col, oppMark)
-            local _, score = minimax(board, true, alpha, beta)
-            undoMove(board, col)
-            if score < value then
-                value = score
-                bestCol = col
-            end
-            beta = math.min(beta, value)
-            if alpha >= beta then break end
-        end
-        return bestCol, value
-    end
-end
-
--- Main function to get the best move
+-- main function, call this directly
 function getBestMove(board)
-    local col, _ = minimax(board, true, -math.huge, math.huge)
-    return col
+	local botBoard, maskBoard = boardToBitboards(board)
+	local bestCol = 4
+	local bestScore = -math.huge
+
+	for _, col in ipairs({4,3,5,2,6,1,7}) do
+		if canPlay(maskBoard, col) then
+			local newBot, newMask = playMove(botBoard, maskBoard, col, true)
+			local score = -negamax(newBot, newMask, MAX_DEPTH-1, -math.huge, math.huge, false)
+			if score > bestScore then
+				bestScore = score
+				bestCol = col
+			end
+		end
+	end
+	return bestCol
 end
+
 
 --------------------------------------------------------------------------
 
@@ -287,13 +270,15 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 
             local btns = ui.Buttons
 
-            local board = {}
-            for col = 1, 7 do
-                board[col] = {}
-                for row = 1, 6 do
-                    board[col][row] = ""
-                end
-            end
+            local board = {
+                { "","","","","","" }, -- column 1 
+                { "","","","","","" }, -- column 2 
+                { "","","","","","" }, -- column 3 
+                { "","","","","","" }, -- column 4 
+                { "","","","","","" }, -- column 5 
+                { "","","","","","" }, -- column 6 
+                { "","","","","","" }, -- column 7 
+                }
             
             for _, child in pairs(balls_container:GetChildren()) do --fills the board with the current board status
                 local col = tonumber(string.sub(child.Name, 2, 2))
