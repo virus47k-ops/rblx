@@ -1,6 +1,7 @@
 local ps = game:GetService("Players")
 local reps = game:GetService("ReplicatedStorage")
 local vu = game:GetService("VirtualUser")
+local https = game:GetService("HttpService")
 
 local plr = ps.LocalPlayer
 local plr_gui = plr:WaitForChild("PlayerGui")
@@ -24,118 +25,155 @@ local is_in_game = false
 
 ------------------------// Align ai stuff //------------------------
 -- BOT is always red
-local ROWS = 6
-local COLS = 7
+-- Roblox Connect4 AI: OpeningBook + Minimax
+
+local ROWS, COLS = 6, 7
 local BOT = "r"
 local OPP = "b"
-local MAX_DEPTH = 7 -- reduce depth for performance
 
--- convert board table to two 32-bit bitboards
-local function boardToBitboards(board)
-	local botBoard = 0
-	local maskBoard = 0
-	local bit = 1
-
-	for r = 1, ROWS do
-		for c = 1, COLS do
-			local cell = board[c][r]
-			if cell ~= "" then
-				maskBoard = bit32.bor(maskBoard, bit)
-				if cell == BOT then
-					botBoard = bit32.bor(botBoard, bit)
-				end
-			end
-			bit = bit32.lshift(bit,1)
-		end
-	end
-	return botBoard, maskBoard
+-- Load OpeningBook from GitHub raw JSON
+local OpeningBook = {}
+do
+    local url = "https://raw.githubusercontent.com/virus47k-ops/rblx/refs/heads/main/align_ob"
+    local success, response = pcall(function()
+        return https:GetAsync(url)
+    end)
+    if success then
+        OpeningBook = https:JSONDecode(response)
+        print("OpeningBook loaded! Total positions:", #OpeningBook)
+    else
+        --warn("Failed to load OpeningBook:", response)
+    end
 end
 
--- check if column is playable
-local function canPlay(maskBoard, col)
-	for r = 1, ROWS do
-		local bit = bit32.lshift(1, (col-1)*ROWS + (r-1))
-		if bit32.band(maskBoard, bit) == 0 then
-			return true
-		end
-	end
-	return false
+-- Flatten board to string
+local function flattenBoard(board)
+    local s = ""
+    for col = 1, COLS do
+        for row = 1, ROWS do
+            s = s .. (board[col][row] ~= "" and board[col][row] or ".")
+        end
+    end
+    return s
 end
 
--- play a move, return new bitboards
-local function playMove(botBoard, maskBoard, col, isBotTurn)
-	local bit = bit32.lshift(1, (col-1)*ROWS) -- bottom row bit
-	while bit32.band(maskBoard, bit) ~= 0 do
-		bit = bit32.lshift(bit,1)
-	end
-	maskBoard = bit32.bor(maskBoard, bit)
-	if isBotTurn then
-		botBoard = bit32.bor(botBoard, bit)
-	end
-	return botBoard, maskBoard
+-- Check win for a player
+local function checkWin(board, player)
+    -- Horizontal
+    for r = 1, ROWS do
+        for c = 1, COLS-3 do
+            if board[c][r]==player and board[c+1][r]==player and board[c+2][r]==player and board[c+3][r]==player then
+                return true
+            end
+        end
+    end
+    -- Vertical
+    for c = 1, COLS do
+        for r = 1, ROWS-3 do
+            if board[c][r]==player and board[c][r+1]==player and board[c][r+2]==player and board[c][r+3]==player then
+                return true
+            end
+        end
+    end
+    -- Diagonal /
+    for c = 1, COLS-3 do
+        for r = 4, ROWS do
+            if board[c][r]==player and board[c+1][r-1]==player and board[c+2][r-2]==player and board[c+3][r-3]==player then
+                return true
+            end
+        end
+    end
+    -- Diagonal \
+    for c = 1, COLS-3 do
+        for r = 1, ROWS-3 do
+            if board[c][r]==player and board[c+1][r+1]==player and board[c+2][r+2]==player and board[c+3][r+3]==player then
+                return true
+            end
+        end
+    end
+    return false
 end
 
--- check win using bitwise shifts
-local function isWinning(bitboard)
-	local directions = {1, ROWS, ROWS+1, ROWS-1} -- horizontal, vertical, diag1, diag2
-	for _, dir in ipairs(directions) do
-		local b = bit32.band(bitboard, bit32.rshift(bitboard, dir))
-		if bit32.band(b, bit32.rshift(b, 2*dir)) ~= 0 then
-			return true
-		end
-	end
-	return false
+-- Minimax with alpha-beta
+local function minimax(board, depth, alpha, beta, maximizing)
+    if checkWin(board, BOT) then return 1000, nil end
+    if checkWin(board, OPP) then return -1000, nil end
+    -- Check draw
+    local full = true
+    for c = 1, COLS do
+        if board[c][ROWS]=="" then full=false break end
+    end
+    if full or depth==0 then return 0, nil end
+
+    local bestCol = nil
+    if maximizing then
+        local maxEval = -math.huge
+        for c = 1, COLS do
+            for r = 1, ROWS do
+                if board[c][r]=="" then
+                    board[c][r] = BOT
+                    local eval,_ = minimax(board, depth-1, alpha, beta, false)
+                    board[c][r] = ""
+                    if eval > maxEval then
+                        maxEval = eval
+                        bestCol = c
+                    end
+                    alpha = math.max(alpha, eval)
+                    if beta <= alpha then break end
+                    break
+                end
+            end
+        end
+        return maxEval, bestCol
+    else
+        local minEval = math.huge
+        for c = 1, COLS do
+            for r = 1, ROWS do
+                if board[c][r]=="" then
+                    board[c][r] = OPP
+                    local eval,_ = minimax(board, depth-1, alpha, beta, true)
+                    board[c][r] = ""
+                    if eval < minEval then
+                        minEval = eval
+                        bestCol = c
+                    end
+                    beta = math.min(beta, eval)
+                    if beta <= alpha then break end
+                    break
+                end
+            end
+        end
+        return minEval, bestCol
+    end
 end
 
--- simple evaluation
-local function evaluate(botBoard, maskBoard)
-	if isWinning(botBoard) then return 100000 end
-	if isWinning(bit32.bxor(maskBoard, botBoard)) then return -100000 end
-	return 0
+-- Find next move from OpeningBook
+local function findNextMoveInBook(flatBoard)
+    for key,_ in pairs(OpeningBook) do
+        if string.sub(key,1,#flatBoard) == flatBoard then
+            -- find first empty in the next move
+            for i = 1, COLS*ROWS do
+                if flatBoard:sub(i,i) == "." and key:sub(i,i) ~= "." then
+                    local col = math.ceil(i/ROWS)
+                    return col
+                end
+            end
+        end
+    end
+    return nil
 end
 
--- negamax with alpha-beta pruning
-local function negamax(botBoard, maskBoard, depth, alpha, beta, isBotTurn)
-	local score = evaluate(botBoard, maskBoard)
-	if math.abs(score) >= 100000 or depth == 0 then
-		return score
-	end
-
-	local bestScore = -math.huge
-	for _, col in ipairs({4,3,5,2,6,1,7}) do -- center-first ordering
-		if canPlay(maskBoard, col) then
-			local newBot, newMask = playMove(botBoard, maskBoard, col, isBotTurn)
-			local val = -negamax(newBot, newMask, depth-1, -beta, -alpha, not isBotTurn)
-			if val > bestScore then
-				bestScore = val
-			end
-			alpha = math.max(alpha, val)
-			if alpha >= beta then
-				break
-			end
-		end
-	end
-	return bestScore
-end
-
--- main function
+-- Main bot function
 function getBestMove(board)
-	local botBoard, maskBoard = boardToBitboards(board)
-	local bestCol = 4
-	local bestScore = -math.huge
-
-	for _, col in ipairs({4,3,5,2,6,1,7}) do
-		if canPlay(maskBoard, col) then
-			local newBot, newMask = playMove(botBoard, maskBoard, col, true)
-			local score = -negamax(newBot, newMask, MAX_DEPTH-1, -math.huge, math.huge, false)
-			if score > bestScore then
-				bestScore = score
-				bestCol = col
-			end
-		end
-	end
-	return bestCol
+    local flat = flattenBoard(board)
+    -- Try OpeningBook first
+    local move = findNextMoveInBook(flat)
+    if move then return move end
+    -- fallback: minimax depth 5 (adjustable)
+    local _, bestCol = minimax(board, 5, -math.huge, math.huge, true)
+    return bestCol
 end
+
 
 
 --------------------------------------------------------------------------
@@ -283,6 +321,7 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 			}
 
 			for _, child in pairs(balls_container:GetChildren()) do --fills the board with the current board status
+				--the child name would look like this for example "_12" where 1 is the col number
 				local col = tonumber(string.sub(child.Name, 2, 2))
 				local row = tonumber(string.sub(child.Name, 3, 3))
 
