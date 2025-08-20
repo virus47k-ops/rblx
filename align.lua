@@ -254,15 +254,15 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 					local ArenaTemplate = _arena:FindFirstChild("ArenaTemplate")
 					if ArenaTemplate then
 						label.Text =3
-						if _arena.ArenaTemplate.Red.Character.Nametag.Frame.Nickname.Text == "@" .. plr.Name then
+						if ArenaTemplate:FindFirstChild("Red"):FindFirstChild("Character"):FindFirstChild("Nametag"):FindFirstChild("Frame"):FindFirstChild("Nickname").Text == "@" .. plr.Name then
 							label.Text =4
-							balls_container = _arena.ArenaTemplate.Important.Balls
+							balls_container = ArenaTemplate:FindFirstChild("Important"):FindFirstChild("Balls")
 							break
 						end
 					end
 				end
 			end
-label.Text =5
+
 			local btns = ui.Buttons
 
 			local board = {
@@ -288,13 +288,13 @@ label.Text =5
 
 				end
 			end
-label.Text =6
+
 			local best_move = getBestMove(board)
-label.Text =7
+
 			for _, conn in ipairs(getconnections(btns["Drop_" .. best_move].MouseButton1Click)) do
 				conn:Fire()
 			end
-label.Text =8
+
 		end
 	end
 end)
