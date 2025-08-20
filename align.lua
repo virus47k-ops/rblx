@@ -262,7 +262,7 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 					end
 				end
 			end
-
+label.Text =5
 			local btns = ui.Buttons
 
 			local board = {
@@ -288,13 +288,13 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 
 				end
 			end
-
+label.Text =6
 			local best_move = getBestMove(board)
-
+label.Text =7
 			for _, conn in ipairs(getconnections(btns["Drop_" .. best_move].MouseButton1Click)) do
 				conn:Fire()
 			end
-
+label.Text =8
 		end
 	end
 end)
