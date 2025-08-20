@@ -261,8 +261,7 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 					if not frame then continue end
 					local nickname = frame:FindFirstChild("Nickname")
 					if not nickname then continue end
-					print(nickname.Text, "@" .. plr.Name)
-					if nickname.Text == "@" .. plr.Name then
+					if nickname.Text == plr.Name then
 						local important = ArenaTemplate:FindFirstChild("Important")
 						if not important then continue end
 						balls_container = important:FindFirstChild("Balls")
