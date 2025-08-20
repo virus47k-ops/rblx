@@ -255,6 +255,7 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 						if _arena.ArenaTemplate.Red.Character.Nametag.Frame.Nickname.Text == "@" .. plr.Name then
 							label.Text =4
 							balls_container = _arena.ArenaTemplate.Important.Balls
+							break
 						end
 					end
 				end
