@@ -247,38 +247,25 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 			until (ui.Name == "Bottom Middle" and align_dir["Top Middle"]) or not ui
 
 			if not ui then return end
-			print(1)
 			if not balls_container then
-				print(2)
 				for _, _arena in pairs(arenas_fldr:GetChildren()) do
-					print(3)
 					local ArenaTemplate = _arena:FindFirstChild("ArenaTemplate")
-					print(4)
 					if not ArenaTemplate then continue end
 					local Red = ArenaTemplate:FindFirstChild("Red")
-					print(5)
 					if not Red then continue end
 					local char = Red:FindFirstChild("Character")
-					print(6)
 					if not char then continue end
 					local nametag = char:FindFirstChild("Nametag")
-					print(7)
 					if not nametag then continue end
 					local frame = nametag:FindFirstChild("Frame")
-					print(8)
 					if not frame then continue end
 					local nickname = frame:FindFirstChild("Nickname")
-					print(9)
 					if not nickname then continue end
-
+					print(nickname.Text, "@" .. plr.Name)
 					if nickname.Text == "@" .. plr.Name then
-						print(10)
 						local important = ArenaTemplate:FindFirstChild("Important")
-						print(11)
 						if not important then continue end
-						print(12)
 						balls_container = important:FindFirstChild("Balls")
-						print(13)
 						break
 					end
 				end
