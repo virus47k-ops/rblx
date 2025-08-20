@@ -12,13 +12,14 @@ local opps_paid = waiting_4_opp_window.Background["Step3"]
 local game_confirmed = waiting_4_opp_window.Background["Step3.5"]
 
 local align_dir = plr_gui.Align
-local arenas_fldr = workspace.ArenasREAL
+local arenas_fldr = Workspace.ArenasREAL
 
 local balls_container --where the balls are added container
 
 local battle_results = plr_gui.BattleResults["Middle Middle"]
 
 local is_in_game = false
+
 
 
 ------------------------// Align ai stuff //------------------------
@@ -250,7 +251,8 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 			if not balls_container then
 				label.Text =2
 				for _, _arena in pairs(arenas_fldr:GetChildren()) do
-					if _arena.ArenaTemplate then
+					local ArenaTemplate = _arena:FindFirstChild("ArenaTemplate")
+					if ArenaTemplate then
 						label.Text =3
 						if _arena.ArenaTemplate.Red.Character.Nametag.Frame.Nickname.Text == "@" .. plr.Name then
 							label.Text =4
