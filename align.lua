@@ -42,22 +42,49 @@ do
         OpeningBook = https:JSONDecode(response)
         print("OpeningBook loaded! Total positions:", #OpeningBook)
     else
-        --warn("Failed to load OpeningBook:", response)
+        warn("Failed to load OpeningBook:", response)
     end
 end
 
--- Flatten board to string
+-- Flatten board row-major (top row first, left→right)
 local function flattenBoard(board)
-    local s = ""
-    for col = 1, COLS do
-        for row = 1, ROWS do
-            s = s .. (board[col][row] ~= "" and board[col][row] or ".")
+    local str = {}
+    for row = ROWS, 1, -1 do
+        for col = 1, COLS do
+            table.insert(str, board[col][row] ~= "" and board[col][row] or ".")
         end
     end
-    return s
+    return table.concat(str)
 end
 
--- Check win for a player
+-- Decide if outcome favors bot
+local function isWinningPath(outcome, isBotFirst)
+    if isBotFirst then
+        return outcome == 9  -- first player win
+    else
+        return outcome == 3  -- second player win
+    end
+end
+
+-- Find next move from OpeningBook
+local function findNextMoveInBook(flatBoard, isBotFirst)
+    for key, outcome in pairs(OpeningBook) do
+        if string.sub(key, 1, #flatBoard) == flatBoard then
+            if isWinningPath(outcome, isBotFirst) then
+                -- find where board differs
+                for i = 1, COLS * ROWS do
+                    if flatBoard:sub(i,i) == "." and key:sub(i,i) ~= "." then
+                        local col = ((i-1) % COLS) + 1
+                        return col
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- Check win
 local function checkWin(board, player)
     -- Horizontal
     for r = 1, ROWS do
@@ -94,11 +121,11 @@ local function checkWin(board, player)
     return false
 end
 
--- Minimax with alpha-beta
+-- Minimax with alpha-beta pruning
 local function minimax(board, depth, alpha, beta, maximizing)
     if checkWin(board, BOT) then return 1000, nil end
     if checkWin(board, OPP) then return -1000, nil end
-    -- Check draw
+
     local full = true
     for c = 1, COLS do
         if board[c][ROWS]=="" then full=false break end
@@ -147,32 +174,28 @@ local function minimax(board, depth, alpha, beta, maximizing)
     end
 end
 
--- Find next move from OpeningBook
-local function findNextMoveInBook(flatBoard)
-    for key,_ in pairs(OpeningBook) do
-        if string.sub(key,1,#flatBoard) == flatBoard then
-            -- find first empty in the next move
-            for i = 1, COLS*ROWS do
-                if flatBoard:sub(i,i) == "." and key:sub(i,i) ~= "." then
-                    local col = math.ceil(i/ROWS)
-                    return col
-                end
-            end
-        end
-    end
-    return nil
-end
-
 -- Main bot function
 function getBestMove(board)
     local flat = flattenBoard(board)
+    -- detect if bot is first player (count pieces)
+    local botCount, oppCount = 0, 0
+    for c = 1, COLS do
+        for r = 1, ROWS do
+            if board[c][r]==BOT then botCount+=1 end
+            if board[c][r]==OPP then oppCount+=1 end
+        end
+    end
+    local isBotFirst = (botCount <= oppCount)
+
     -- Try OpeningBook first
-    local move = findNextMoveInBook(flat)
+    local move = findNextMoveInBook(flat, isBotFirst)
     if move then return move end
-    -- fallback: minimax depth 5 (adjustable)
+
+    -- fallback: minimax depth 5
     local _, bestCol = minimax(board, 5, -math.huge, math.huge, true)
     return bestCol
 end
+
 
 
 
