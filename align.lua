@@ -29,7 +29,7 @@ local bit32 = bit32
 local ROWS, COLS = 6, 7
 local BOT = "r"
 local OPP = "b"
-local MAX_DEPTH = 12 -- adjust for performance
+local MAX_DEPTH = 8 -- adjust for performance
 
 -- Initialize board structure
 local function copyBoard(board)
@@ -424,6 +424,7 @@ task.spawn(function() --refresh hosting pos
 		end
 	end
 end)
+
 
 
 
