@@ -26,158 +26,107 @@ local is_in_game = false
 ------------------------// Align ai stuff //------------------------
 -- BOT is always red
 
-local COLUMNS = 7
-local ROWS = 6
-local COL_HEIGHT = ROWS + 1
-local MOVE_ORDER = {3,4,2,5,1,6,0} -- center-first ordering
-local AI_TIME_LIMIT = 1.2
-local AI_MAX_DEPTH = 42
+local CENTER_COL = 3 -- 0-indexed
+local MAX_SCORE = 1e9
 
-local bit32 = bit32
+-- Heuristic evaluation: counts potential 2s, 3s, and center control
+local function evaluatePosition(playerBB, oppBB, mask)
+    local score = 0
 
--- 64-bit emulation
-local function make64(lo, hi) return {lo = bit32.band(lo,0xFFFFFFFF), hi = bit32.band(hi,0xFFFFFFFF)} end
-local function clone64(a) return {lo = a.lo, hi = a.hi} end
-local function band64(a,b) return {lo = bit32.band(a.lo,b.lo), hi = bit32.band(a.hi,b.hi)} end
-local function bor64(a,b) return {lo = bit32.bor(a.lo,b.lo), hi = bit32.bor(a.hi,b.hi)} end
-local function eq64(a,b) return a.lo==b.lo and a.hi==b.hi end
-local function isZero64(a) return a.lo==0 and a.hi==0 end
-
--- Column bit
-local function colBit(col,rowIndex)
-    local idx = col*COL_HEIGHT + rowIndex
-    if idx<32 then return make64(2^idx,0) else return make64(0,2^(idx-32)) end
-end
-
--- Masks
-local BOTTOM_MASKS, TOP_MASKS, COLUMN_MASKS = {}, {}, {}
-for c=0,COLUMNS-1 do
-    local bottom, top, colmask = make64(0,0), make64(0,0), make64(0,0)
-    for r=0,COL_HEIGHT-1 do
-        local b = colBit(c,r)
-        colmask = bor64(colmask,b)
-        if r==0 then bottom = bor64(bottom,b) end
-        if r==COL_HEIGHT-1 then top = bor64(top,b) end
+    -- Center control
+    for r = 0, ROWS-1 do
+        local bit = colBit(CENTER_COL, r)
+        if not isZero64(band64(playerBB, bit)) then score = score + 3 end
+        if not isZero64(band64(oppBB, bit)) then score = score - 3 end
     end
-    BOTTOM_MASKS[c]=bottom; TOP_MASKS[c]=top; COLUMN_MASKS[c]=colmask
-end
 
-local ALL_MASK = make64(0,0)
-for c=0,COLUMNS-1 do ALL_MASK = bor64(ALL_MASK,COLUMN_MASKS[c]) end
-
--- Bit helpers
-local function lowestFreeBit(mask,col)
-    local notMask = {lo=bit32.bnot(mask.lo), hi=bit32.bnot(mask.hi)}
-    local free = band64(COLUMN_MASKS[col], notMask)
-    if isZero64(free) then return make64(0,0) end
-    local notFree = {lo=bit32.bnot(free.lo), hi=bit32.bnot(free.hi)}
-    local lo = bit32.band(notFree.lo+1,0xFFFFFFFF)
-    local carry = 0
-    if lo<notFree.lo then carry=1 end
-    local hi = bit32.band(notFree.hi+carry,0xFFFFFFFF)
-    local negFree = {lo=lo, hi=hi}
-    return band64(free, negFree)
-end
-
-local function addBit(mask,bit) return bor64(mask,bit) end
-local function isColumnFull(mask,col) return not isZero64(band64(mask,TOP_MASKS[col])) end
-local function makeMoveFor(playerBB,mask,col)
-    local bit=lowestFreeBit(mask,col)
-    local newMask=addBit(mask,bit)
-    local newPlayer=bor64(playerBB,bit)
-    return newPlayer,newMask,bit
-end
-
-local function rshift64(a,n)
-    if n==0 then return clone64(a) end
-    if n>=64 then return make64(0,0) end
-    if n>=32 then return make64(bit32.rshift(a.hi,n-32),0) end
-    local lo = bit32.rshift(a.lo,n)+bit32.lshift(bit32.band(a.hi,0xFFFFFFFF),32-n)
-    local hi = bit32.rshift(a.hi,n)
-    return make64(bit32.band(lo,0xFFFFFFFF),bit32.band(hi,0xFFFFFFFF))
-end
-
--- Win check
-local function isWinningPosition(pos)
-    local function checkShift(shift)
-        local m = band64(pos,rshift64(pos,shift))
-        return not isZero64(band64(m,rshift64(m,2*shift)))
+    -- Simple 2-in-a-row and 3-in-a-row heuristics (horizontal + vertical)
+    local directions = {1, COL_HEIGHT, COL_HEIGHT+1, COL_HEIGHT-1}
+    for _, shift in ipairs(directions) do
+        local m = band64(playerBB, rshift64(playerBB, shift))
+        if not isZero64(m) then score = score + 2 end
+        local m2 = band64(m, rshift64(m, shift))
+        if not isZero64(m2) then score = score + 4 end
     end
-    return checkShift(1) or checkShift(COL_HEIGHT) or checkShift(COL_HEIGHT+1) or checkShift(COL_HEIGHT-1)
+
+    for _, shift in ipairs(directions) do
+        local m = band64(oppBB, rshift64(oppBB, shift))
+        if not isZero64(m) then score = score - 2 end
+        local m2 = band64(m, rshift64(m, shift))
+        if not isZero64(m2) then score = score - 4 end
+    end
+
+    return score
 end
 
--- Negamax
-local TT={}
-local startTime
-local function timeExceeded() return (os.clock()-startTime)>AI_TIME_LIMIT end
-
-local function negamax(playerBB,oppBB,mask,depth,alpha,beta)
+-- Negamax with alpha-beta and simple heuristic
+local function negamaxAI(playerBB, oppBB, mask, depth, alpha, beta)
     if timeExceeded() then return 0 end
-    if isWinningPosition(oppBB) then return -1000000 end
-    if depth==0 then
-        local score=0
-        for _,c in ipairs(MOVE_ORDER) do if not isColumnFull(mask,c) then score=score+4-math.abs(3-c) end end
-        return score
-    end
-    local key=tostring(mask.lo)..":"..tostring(mask.hi)..":"..tostring(depth)
-    if TT[key] then return TT[key] end
-    local best=-math.huge
-    for _,col in ipairs(MOVE_ORDER) do
-        if not isColumnFull(mask,col) then
-            local newPlayer,newMask,bit=makeMoveFor(playerBB,mask,col)
-            if isWinningPosition(newPlayer) then TT[key]=100000; return 100000 end
-            local val=-negamax(oppBB,newPlayer,newMask,depth-1,-beta,-alpha)
-            if val>best then best=val end
-            if val>alpha then alpha=val end
-            if alpha>=beta then break end
+    if isWinningPosition(oppBB) then return -MAX_SCORE end
+    if depth == 0 then return evaluatePosition(playerBB, oppBB, mask) end
+
+    local best = -math.huge
+    for _, col in ipairs(MOVE_ORDER) do
+        if not isColumnFull(mask, col) then
+            local newPlayer, newMask, _ = makeMoveFor(playerBB, mask, col)
+            if isWinningPosition(newPlayer) then return MAX_SCORE end
+            local val = -negamaxAI(oppBB, newPlayer, newMask, depth-1, -beta, -alpha)
+            if val > best then best = val end
+            if val > alpha then alpha = val end
+            if alpha >= beta then break end
         end
     end
-    TT[key]=best
     return best
 end
 
-local function findBestMove(playerBB,oppBB,mask)
-    startTime=os.clock(); TT={}
-    local bestMove,bestScore=nil,-math.huge
-    for depth=1,AI_MAX_DEPTH do
+-- Iterative deepening to respect AI_TIME_LIMIT
+local function findBestMoveAI(playerBB, oppBB, mask)
+    startTime = os.clock()
+    TT = {}
+
+    local bestMove, bestScore = nil, -math.huge
+
+    for depth = 1, AI_MAX_DEPTH do
         if timeExceeded() then break end
-        local localBest,localMove=-math.huge,MOVE_ORDER[1]
-        for _,col in ipairs(MOVE_ORDER) do
-            if not isColumnFull(mask,col) then
-                local newPlayer,newMask,bit=makeMoveFor(playerBB,mask,col)
-                if isWinningPosition(newPlayer) then return col,1e9 end
-                local score=-negamax(oppBB,newPlayer,newMask,depth-1,-1e9,1e9)
-                if score>localBest then localBest=score; localMove=col end
+        local localBest, localMove = -math.huge, MOVE_ORDER[1]
+
+        for _, col in ipairs(MOVE_ORDER) do
+            if not isColumnFull(mask, col) then
+                local newPlayer, newMask, _ = makeMoveFor(playerBB, mask, col)
+                if isWinningPosition(newPlayer) then return col, MAX_SCORE end
+                local score = -negamaxAI(oppBB, newPlayer, newMask, depth-1, -MAX_SCORE, MAX_SCORE)
+                if score > localBest then
+                    localBest, localMove = score, col
+                end
                 if timeExceeded() then break end
             end
         end
-        if not timeExceeded() then bestMove,bestScore=localMove,localBest end
+
+        if not timeExceeded() then
+            bestMove, bestScore = localMove, localBest
+        end
     end
-    return bestMove,bestScore
+
+    return bestMove, bestScore
 end
 
--- THE FUNCTION YOU NEED
+-- Robust getBestMove for Roblox board
 function getBestMove(board)
-    local playerBB = make64(0,0) -- bot "r"
-    local oppBB = make64(0,0)    -- opponent "b"
-    local mask = make64(0,0)
+    local playerBB, oppBB, mask = make64(0,0), make64(0,0), make64(0,0)
 
-    for r=1,ROWS do
-        for c=1,COLUMNS do
+    for r = 1, ROWS do
+        for c = 1, COLUMNS do
             local cell = board[r][c]
-            if cell~="" then
+            if cell ~= "" then
                 local bit = colBit(c-1, ROWS-r)
                 mask = bor64(mask, bit)
-                if cell=="r" then
-                    playerBB = bor64(playerBB, bit)
-                elseif cell=="b" then
-                    oppBB = bor64(oppBB, bit)
-                end
+                if cell == "r" then playerBB = bor64(playerBB, bit)
+                elseif cell == "b" then oppBB = bor64(oppBB, bit) end
             end
         end
     end
 
-    local bestCol,_ = findBestMove(playerBB, oppBB, mask)
+    local bestCol, _ = findBestMoveAI(playerBB, oppBB, mask)
     if bestCol then return bestCol + 1 else return nil end
 end
 
