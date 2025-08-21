@@ -1,4 +1,3 @@
-
 local ps = game:GetService("Players")
 local reps = game:GetService("ReplicatedStorage")
 local vu = game:GetService("VirtualUser")
@@ -188,6 +187,7 @@ label.Font = Enum.Font.SourceSansBold
 
 local function host_minigame()
     reps.RemoteCalls.GameSpecific.Tickets.DestroyRoom:InvokeServer()--destroy minigame room
+	reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
     reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args))
 
     next_gamepass = next_gamepass + 1
@@ -282,8 +282,6 @@ task.spawn(function() --refresh hosting pos
     while task.wait(10) do
         if not is_in_game then
             if not opps_paying.Visible and not opps_paid.Visible then
-                reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
-					task.wait(1)
                 host_minigame()
             end
         end
