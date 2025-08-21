@@ -283,6 +283,7 @@ task.spawn(function() --refresh hosting pos
         if not is_in_game then
             if not opps_paying.Visible and not opps_paid.Visible then
                 reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
+					task.wait(1)
                 host_minigame()
             end
         end
