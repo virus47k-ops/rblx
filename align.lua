@@ -343,6 +343,7 @@ align_dir.ChildAdded:Connect(function(ui)--play buttons
 			end
 
 			local best_move = getBestMove(board)
+			print(best_move)
 
 			for _, conn in ipairs(getconnections(btns["Drop_" .. best_move].MouseButton1Click)) do
 				conn:Fire()
