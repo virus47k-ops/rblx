@@ -26,111 +26,170 @@ local is_in_game = false
 ------------------------// Align ai stuff //------------------------
 -- BOT is always red
 
-local CENTER_COL = 3 -- 0-indexed
-local MAX_SCORE = 1e9
-
--- Heuristic evaluation: counts potential 2s, 3s, and center control
-local function evaluatePosition(playerBB, oppBB, mask)
-    local score = 0
-
-    -- Center control
-    for r = 0, ROWS-1 do
-        local bit = colBit(CENTER_COL, r)
-        if not isZero64(band64(playerBB, bit)) then score = score + 3 end
-        if not isZero64(band64(oppBB, bit)) then score = score - 3 end
-    end
-
-    -- Simple 2-in-a-row and 3-in-a-row heuristics (horizontal + vertical)
-    local directions = {1, COL_HEIGHT, COL_HEIGHT+1, COL_HEIGHT-1}
-    for _, shift in ipairs(directions) do
-        local m = band64(playerBB, rshift64(playerBB, shift))
-        if not isZero64(m) then score = score + 2 end
-        local m2 = band64(m, rshift64(m, shift))
-        if not isZero64(m2) then score = score + 4 end
-    end
-
-    for _, shift in ipairs(directions) do
-        local m = band64(oppBB, rshift64(oppBB, shift))
-        if not isZero64(m) then score = score - 2 end
-        local m2 = band64(m, rshift64(m, shift))
-        if not isZero64(m2) then score = score - 4 end
-    end
-
-    return score
-end
-
--- Negamax with alpha-beta and simple heuristic
-local function negamaxAI(playerBB, oppBB, mask, depth, alpha, beta)
-    if timeExceeded() then return 0 end
-    if isWinningPosition(oppBB) then return -MAX_SCORE end
-    if depth == 0 then return evaluatePosition(playerBB, oppBB, mask) end
-
-    local best = -math.huge
-    for _, col in ipairs(MOVE_ORDER) do
-        if not isColumnFull(mask, col) then
-            local newPlayer, newMask, _ = makeMoveFor(playerBB, mask, col)
-            if isWinningPosition(newPlayer) then return MAX_SCORE end
-            local val = -negamaxAI(oppBB, newPlayer, newMask, depth-1, -beta, -alpha)
-            if val > best then best = val end
-            if val > alpha then alpha = val end
-            if alpha >= beta then break end
-        end
-    end
-    return best
-end
-
--- Iterative deepening to respect AI_TIME_LIMIT
-local function findBestMoveAI(playerBB, oppBB, mask)
-    startTime = os.clock()
-    TT = {}
-
-    local bestMove, bestScore = nil, -math.huge
-
-    for depth = 1, AI_MAX_DEPTH do
-        if timeExceeded() then break end
-        local localBest, localMove = -math.huge, MOVE_ORDER[1]
-
-        for _, col in ipairs(MOVE_ORDER) do
-            if not isColumnFull(mask, col) then
-                local newPlayer, newMask, _ = makeMoveFor(playerBB, mask, col)
-                if isWinningPosition(newPlayer) then return col, MAX_SCORE end
-                local score = -negamaxAI(oppBB, newPlayer, newMask, depth-1, -MAX_SCORE, MAX_SCORE)
-                if score > localBest then
-                    localBest, localMove = score, col
-                end
-                if timeExceeded() then break end
-            end
-        end
-
-        if not timeExceeded() then
-            bestMove, bestScore = localMove, localBest
-        end
-    end
-
-    return bestMove, bestScore
-end
-
--- Robust getBestMove for Roblox board
+-- Returns the best column for "r" to play
 function getBestMove(board)
-    local playerBB, oppBB, mask = make64(0,0), make64(0,0), make64(0,0)
-
-    for r = 1, ROWS do
-        for c = 1, COLUMNS do
-            local cell = board[r][c]
-            if cell ~= "" then
-                local bit = colBit(c-1, ROWS-r)
-                mask = bor64(mask, bit)
-                if cell == "r" then playerBB = bor64(playerBB, bit)
-                elseif cell == "b" then oppBB = bor64(oppBB, bit) end
+    local ROWS, COLS = 6, 7
+    local BOT = "r"
+    local OPP = "b"
+    local MAX_DEPTH = 8 -- depth can be 4 for speed, higher = stronger
+    
+    -- Check if someone has won
+    local function checkWin(b, mark)
+        for r = 1, ROWS do
+            for c = 1, COLS do
+                if c+3 <= COLS and b[r][c] == mark and b[r][c+1] == mark and b[r][c+2] == mark and b[r][c+3] == mark then
+                    return true
+                end
+                if r+3 <= ROWS and b[r][c] == mark and b[r+1][c] == mark and b[r+2][c] == mark and b[r+3][c] == mark then
+                    return true
+                end
+                if r+3 <= ROWS and c+3 <= COLS and b[r][c] == mark and b[r+1][c+1] == mark and b[r+2][c+2] == mark and b[r+3][c+3] == mark then
+                    return true
+                end
+                if r+3 <= ROWS and c-3 >= 1 and b[r][c] == mark and b[r+1][c-1] == mark and b[r+2][c-2] == mark and b[r+3][c-3] == mark then
+                    return true
+                end
             end
+        end
+        return false
+    end
+
+    -- Score board for BOT
+    local function evaluateWindow(window, mark)
+        local score = 0
+        local oppMark = mark == BOT and OPP or BOT
+        local countMark, countEmpty, countOpp = 0, 0, 0
+        for _, cell in ipairs(window) do
+            if cell == mark then countMark = countMark + 1
+            elseif cell == "" then countEmpty = countEmpty + 1
+            else countOpp = countOpp + 1 end
+        end
+
+        if countMark == 4 then
+            score = 1000
+        elseif countMark == 3 and countEmpty == 1 then
+            score = 10
+        elseif countMark == 2 and countEmpty == 2 then
+            score = 5
+        end
+
+        if countOpp == 3 and countEmpty == 1 then
+            score = score - 80 -- block opponent
+        end
+
+        return score
+    end
+
+    local function scorePosition(b, mark)
+        local score = 0
+        -- Horizontal
+        for r = 1, ROWS do
+            for c = 1, COLS-3 do
+                local window = {b[r][c], b[r][c+1], b[r][c+2], b[r][c+3]}
+                score = score + evaluateWindow(window, mark)
+            end
+        end
+        -- Vertical
+        for c = 1, COLS do
+            for r = 1, ROWS-3 do
+                local window = {b[r][c], b[r+1][c], b[r+2][c], b[r+3][c]}
+                score = score + evaluateWindow(window, mark)
+            end
+        end
+        -- Diagonal /
+        for r = 1, ROWS-3 do
+            for c = 1, COLS-3 do
+                local window = {b[r][c], b[r+1][c+1], b[r+2][c+2], b[r+3][c+3]}
+                score = score + evaluateWindow(window, mark)
+            end
+        end
+        -- Diagonal \
+        for r = 4, ROWS do
+            for c = 1, COLS-3 do
+                local window = {b[r][c], b[r-1][c+1], b[r-2][c+2], b[r-3][c+3]}
+                score = score + evaluateWindow(window, mark)
+            end
+        end
+        return score
+    end
+
+    -- Return valid columns
+    local function getValidCols(b)
+        local valid = {}
+        for c = 1, COLS do
+            if b[1][c] == "" then
+                table.insert(valid, c)
+            end
+        end
+        return valid
+    end
+
+    -- Drop piece in column
+    local function dropPiece(b, col, mark)
+        local newBoard = {}
+        for r = 1, ROWS do
+            newBoard[r] = {}
+            for c = 1, COLS do
+                newBoard[r][c] = b[r][c]
+            end
+        end
+        for r = ROWS, 1, -1 do
+            if newBoard[r][col] == "" then
+                newBoard[r][col] = mark
+                break
+            end
+        end
+        return newBoard
+    end
+
+    -- Minimax with alpha-beta pruning
+    local function minimax(b, depth, alpha, beta, maximizingPlayer)
+        local validCols = getValidCols(b)
+        local terminal = checkWin(b, BOT) or checkWin(b, OPP) or #validCols == 0
+        if depth == 0 or terminal then
+            if terminal then
+                if checkWin(b, BOT) then return nil, 10000 end
+                if checkWin(b, OPP) then return nil, -10000 end
+                return nil, 0
+            else
+                return nil, scorePosition(b, BOT)
+            end
+        end
+
+        if maximizingPlayer then
+            local value = -math.huge
+            local bestCol = validCols[1]
+            for _, col in ipairs(validCols) do
+                local newBoard = dropPiece(b, col, BOT)
+                local _, newScore = minimax(newBoard, depth-1, alpha, beta, false)
+                if newScore > value then
+                    value = newScore
+                    bestCol = col
+                end
+                alpha = math.max(alpha, value)
+                if alpha >= beta then break end
+            end
+            return bestCol, value
+        else
+            local value = math.huge
+            local bestCol = validCols[1]
+            for _, col in ipairs(validCols) do
+                local newBoard = dropPiece(b, col, OPP)
+                local _, newScore = minimax(newBoard, depth-1, alpha, beta, true)
+                if newScore < value then
+                    value = newScore
+                    bestCol = col
+                end
+                beta = math.min(beta, value)
+                if alpha >= beta then break end
+            end
+            return bestCol, value
         end
     end
 
-    local bestCol, _ = findBestMoveAI(playerBB, oppBB, mask)
-    if bestCol then return bestCol + 1 else return nil end
+    local bestCol, _ = minimax(board, MAX_DEPTH, -math.huge, math.huge, true)
+    return bestCol
 end
-
-
 
 
 --------------------------------------------------------------------------
