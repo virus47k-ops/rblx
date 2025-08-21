@@ -25,171 +25,201 @@ local is_in_game = false
 
 ------------------------// Align ai stuff //------------------------
 -- BOT is always red
+local bit32 = bit32
+local ROWS, COLS = 6, 7
+local BOT = "r"
+local OPP = "b"
+local MAX_DEPTH = 4 -- adjust for performance
 
--- Returns the best column for "r" to play
-function getBestMove(board)
-    local ROWS, COLS = 6, 7
-    local BOT = "r"
-    local OPP = "b"
-    local MAX_DEPTH = 8 -- depth can be 4 for speed, higher = stronger
-    
-    -- Check if someone has won
-    local function checkWin(b, mark)
-        for r = 1, ROWS do
-            for c = 1, COLS do
-                if c+3 <= COLS and b[r][c] == mark and b[r][c+1] == mark and b[r][c+2] == mark and b[r][c+3] == mark then
-                    return true
-                end
-                if r+3 <= ROWS and b[r][c] == mark and b[r+1][c] == mark and b[r+2][c] == mark and b[r+3][c] == mark then
-                    return true
-                end
-                if r+3 <= ROWS and c+3 <= COLS and b[r][c] == mark and b[r+1][c+1] == mark and b[r+2][c+2] == mark and b[r+3][c+3] == mark then
-                    return true
-                end
-                if r+3 <= ROWS and c-3 >= 1 and b[r][c] == mark and b[r+1][c-1] == mark and b[r+2][c-2] == mark and b[r+3][c-3] == mark then
-                    return true
-                end
-            end
-        end
-        return false
+-- Initialize board structure
+local function copyBoard(board)
+    local newBoard = { red = {}, blue = {} }
+    for c = 1, COLS do
+        newBoard.red[c] = board.red[c]
+        newBoard.blue[c] = board.blue[c]
     end
+    return newBoard
+end
 
-    -- Score board for BOT
-    local function evaluateWindow(window, mark)
-        local score = 0
-        local oppMark = mark == BOT and OPP or BOT
-        local countMark, countEmpty, countOpp = 0, 0, 0
-        for _, cell in ipairs(window) do
-            if cell == mark then countMark = countMark + 1
-            elseif cell == "" then countEmpty = countEmpty + 1
-            else countOpp = countOpp + 1 end
-        end
-
-        if countMark == 4 then
-            score = 1000
-        elseif countMark == 3 and countEmpty == 1 then
-            score = 10
-        elseif countMark == 2 and countEmpty == 2 then
-            score = 5
-        end
-
-        if countOpp == 3 and countEmpty == 1 then
-            score = score - 80 -- block opponent
-        end
-
-        return score
-    end
-
-    local function scorePosition(b, mark)
-        local score = 0
-        -- Horizontal
-        for r = 1, ROWS do
-            for c = 1, COLS-3 do
-                local window = {b[r][c], b[r][c+1], b[r][c+2], b[r][c+3]}
-                score = score + evaluateWindow(window, mark)
-            end
-        end
-        -- Vertical
-        for c = 1, COLS do
-            for r = 1, ROWS-3 do
-                local window = {b[r][c], b[r+1][c], b[r+2][c], b[r+3][c]}
-                score = score + evaluateWindow(window, mark)
-            end
-        end
-        -- Diagonal /
-        for r = 1, ROWS-3 do
-            for c = 1, COLS-3 do
-                local window = {b[r][c], b[r+1][c+1], b[r+2][c+2], b[r+3][c+3]}
-                score = score + evaluateWindow(window, mark)
-            end
-        end
-        -- Diagonal \
-        for r = 4, ROWS do
-            for c = 1, COLS-3 do
-                local window = {b[r][c], b[r-1][c+1], b[r-2][c+2], b[r-3][c+3]}
-                score = score + evaluateWindow(window, mark)
-            end
-        end
-        return score
-    end
-
-    -- Return valid columns
-    local function getValidCols(b)
-        local valid = {}
-        for c = 1, COLS do
-            if b[1][c] == "" then
-                table.insert(valid, c)
-            end
-        end
-        return valid
-    end
-
-    -- Drop piece in column
-    local function dropPiece(b, col, mark)
-        local newBoard = {}
-        for r = 1, ROWS do
-            newBoard[r] = {}
-            for c = 1, COLS do
-                newBoard[r][c] = b[r][c]
-            end
-        end
-        for r = ROWS, 1, -1 do
-            if newBoard[r][col] == "" then
-                newBoard[r][col] = mark
-                break
-            end
-        end
-        return newBoard
-    end
-
-    -- Minimax with alpha-beta pruning
-    local function minimax(b, depth, alpha, beta, maximizingPlayer)
-        local validCols = getValidCols(b)
-        local terminal = checkWin(b, BOT) or checkWin(b, OPP) or #validCols == 0
-        if depth == 0 or terminal then
-            if terminal then
-                if checkWin(b, BOT) then return nil, 10000 end
-                if checkWin(b, OPP) then return nil, -10000 end
-                return nil, 0
+-- Drop piece in a column
+local function dropPiece(board, col, mark)
+    for row = 0, ROWS-1 do
+        local mask = 2^row
+        if bit32.band(board.red[col] + board.blue[col], mask) == 0 then
+            if mark == BOT then
+                board.red[col] = board.red[col] + mask
             else
-                return nil, scorePosition(b, BOT)
+                board.blue[col] = board.blue[col] + mask
+            end
+            return true
+        end
+    end
+    return false -- column full
+end
+
+-- Check if a cell is occupied by a player
+local function isCell(board, row, col, mark)
+    local mask = 2^(row-1)
+    if mark == BOT then
+        return bit32.band(board.red[col], mask) ~= 0
+    else
+        return bit32.band(board.blue[col], mask) ~= 0
+    end
+end
+
+-- Check for win
+local function checkWin(board, mark)
+    -- horizontal
+    for r = 1, ROWS do
+        for c = 1, COLS-3 do
+            if isCell(board,r,c,mark) and isCell(board,r,c+1,mark) and isCell(board,r,c+2,mark) and isCell(board,r,c+3,mark) then
+                return true
             end
         end
+    end
+    -- vertical
+    for c = 1, COLS do
+        for r = 1, ROWS-3 do
+            if isCell(board,r,c,mark) and isCell(board,r+1,c,mark) and isCell(board,r+2,c,mark) and isCell(board,r+3,c,mark) then
+                return true
+            end
+        end
+    end
+    -- diagonal /
+    for r = 1, ROWS-3 do
+        for c = 1, COLS-3 do
+            if isCell(board,r,c,mark) and isCell(board,r+1,c+1,mark) and isCell(board,r+2,c+2,mark) and isCell(board,r+3,c+3,mark) then
+                return true
+            end
+        end
+    end
+    -- diagonal \
+    for r = 4, ROWS do
+        for c = 1, COLS-3 do
+            if isCell(board,r,c,mark) and isCell(board,r-1,c+1,mark) and isCell(board,r-2,c+2,mark) and isCell(board,r-3,c+3,mark) then
+                return true
+            end
+        end
+    end
+    return false
+end
 
-        if maximizingPlayer then
-            local value = -math.huge
-            local bestCol = validCols[1]
-            for _, col in ipairs(validCols) do
-                local newBoard = dropPiece(b, col, BOT)
-                local _, newScore = minimax(newBoard, depth-1, alpha, beta, false)
-                if newScore > value then
-                    value = newScore
-                    bestCol = col
-                end
-                alpha = math.max(alpha, value)
-                if alpha >= beta then break end
-            end
-            return bestCol, value
+-- Score position for BOT
+local function scorePosition(board)
+    local score = 0
+    -- simple heuristic: count 2/3 in a row
+    local function evalWindow(r,c,dr,dc)
+        local countBot, countOpp, countEmpty = 0,0,0
+        for i=0,3 do
+            local row,col = r+dr*i, c+dc*i
+            if row < 1 or row > ROWS or col < 1 or col > COLS then return 0 end
+            if isCell(board,row,col,BOT) then countBot=countBot+1
+            elseif isCell(board,row,col,OPP) then countOpp=countOpp+1
+            else countEmpty=countEmpty+1 end
+        end
+        local s=0
+        if countBot==4 then s=1000
+        elseif countBot==3 and countEmpty==1 then s=10
+        elseif countBot==2 and countEmpty==2 then s=5 end
+        if countOpp==3 and countEmpty==1 then s=s-80 end -- block opponent
+        return s
+    end
+
+    -- horizontal
+    for r=1,ROWS do
+        for c=1,COLS-3 do score = score + evalWindow(r,c,0,1) end
+    end
+    -- vertical
+    for r=1,ROWS-3 do
+        for c=1,COLS do score = score + evalWindow(r,c,1,0) end
+    end
+    -- diagonal /
+    for r=1,ROWS-3 do
+        for c=1,COLS-3 do score = score + evalWindow(r,c,1,1) end
+    end
+    -- diagonal \
+    for r=4,ROWS do
+        for c=1,COLS-3 do score = score + evalWindow(r,c,-1,1) end
+    end
+    return score
+end
+
+-- Return valid columns
+local function getValidCols(board)
+    local valid = {}
+    for c=1,COLS do
+        if board.red[c] + board.blue[c] < 2^ROWS then
+            table.insert(valid,c)
+        end
+    end
+    return valid
+end
+
+-- Minimax with alpha-beta
+local function minimax(board, depth, alpha, beta, maximizing)
+    local validCols = getValidCols(board)
+    local terminal = checkWin(board,BOT) or checkWin(board,OPP) or #validCols==0
+    if depth==0 or terminal then
+        if terminal then
+            if checkWin(board,BOT) then return nil, 10000 end
+            if checkWin(board,OPP) then return nil, -10000 end
+            return nil, 0
         else
-            local value = math.huge
-            local bestCol = validCols[1]
-            for _, col in ipairs(validCols) do
-                local newBoard = dropPiece(b, col, OPP)
-                local _, newScore = minimax(newBoard, depth-1, alpha, beta, true)
-                if newScore < value then
-                    value = newScore
-                    bestCol = col
-                end
-                beta = math.min(beta, value)
-                if alpha >= beta then break end
-            end
-            return bestCol, value
+            return nil, scorePosition(board)
         end
     end
 
-    local bestCol, _ = minimax(board, MAX_DEPTH, -math.huge, math.huge, true)
+    if maximizing then
+        local value = -math.huge
+        local bestCol = validCols[1]
+        for _, col in ipairs(validCols) do
+            local newBoard = copyBoard(board)
+            dropPiece(newBoard,col,BOT)
+            local _, newScore = minimax(newBoard,depth-1,alpha,beta,false)
+            if newScore > value then
+                value = newScore
+                bestCol = col
+            end
+            alpha = math.max(alpha,value)
+            if alpha >= beta then break end
+        end
+        return bestCol, value
+    else
+        local value = math.huge
+        local bestCol = validCols[1]
+        for _, col in ipairs(validCols) do
+            local newBoard = copyBoard(board)
+            dropPiece(newBoard,col,OPP)
+            local _, newScore = minimax(newBoard,depth-1,alpha,beta,true)
+            if newScore < value then
+                value = newScore
+                bestCol = col
+            end
+            beta = math.min(beta,value)
+            if alpha >= beta then break end
+        end
+        return bestCol, value
+    end
+end
+
+-- Main function
+function getBestMove(inputBoard)
+    -- convert 2D array input to bit32 column representation
+    local board = { red={}, blue={} }
+    for c=1,COLS do board.red[c]=0; board.blue[c]=0 end
+    for r=1,ROWS do
+        for c=1,COLS do
+            local val = inputBoard[r][c]
+            local mask = 2^(r-1)
+            if val=="r" then board.red[c] = board.red[c] + mask
+            elseif val=="b" then board.blue[c] = board.blue[c] + mask end
+        end
+    end
+
+    local bestCol,_ = minimax(board,MAX_DEPTH,-math.huge,math.huge,true)
     return bestCol
 end
+
 
 
 --------------------------------------------------------------------------
