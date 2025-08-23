@@ -187,7 +187,8 @@ label.Font = Enum.Font.SourceSansBold
 
 local function host_minigame()
     reps.RemoteCalls.GameSpecific.Tickets.DestroyRoom:InvokeServer()--destroy minigame room
-	--reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
+	task.wait()
+	reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
 	task.wait(5)
     reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args))
 
