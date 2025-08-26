@@ -25,6 +25,18 @@ local is_in_game = false
 local botMark = "⭕"
 local oppMark = "🇽"
 
+local board = {
+	[1] = "",
+	[2] = "",
+	[3] = "",
+	[4] = "",
+	[5] = "",
+	[6] = "",
+	[7] = "",
+	[8] = "",
+	[9] = "",
+}
+
 local wins = {
 	{1,2,3},{4,5,6},{7,8,9}, -- rows
 	{1,4,7},{2,5,8},{3,6,9}, -- columns
@@ -112,6 +124,7 @@ end
 --------------------------------------------------------------------------
 
 
+
 local gamepasses = { 
     [1] = "1341716162",
     [2] = "1407904920",
@@ -174,7 +187,9 @@ label.Font = Enum.Font.SourceSansBold
 
 local function host_minigame()
     reps.RemoteCalls.GameSpecific.Tickets.DestroyRoom:InvokeServer()--destroy minigame room
-    reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
+	task.wait()
+	reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
+	task.wait(5)
     reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args))
 
     next_gamepass = next_gamepass + 1
@@ -223,17 +238,9 @@ ttt_dir.ChildAdded:Connect(function(ui)--play buttons
             
             math.randomseed(tick()) -- ensure randomness changes for if its bot's 1st move
 
-            local board = {
-                [1] = "",
-                [2] = "",
-                [3] = "",
-                [4] = "",
-                [5] = "",
-                [6] = "",
-                [7] = "",
-                [8] = "",
-                [9] = "",
-            }
+            for i = 1, 9 do
+                board[i] = ""
+            end
             
             for i = 1, 9 do
                 local txt = btns["Drop_"..i].TextLabel.Text
@@ -243,11 +250,13 @@ ttt_dir.ChildAdded:Connect(function(ui)--play buttons
             end
 
             local best_move = getBestMove(board)
-
-            
-           for _, conn in ipairs(getconnections(btns["Drop_" .. best_move].MouseButton1Click)) do
+			task.wait(math.random(2))
+				if btns then
+					 for _, conn in ipairs(getconnections(btns["Drop_" .. best_move].MouseButton1Click)) do
             conn:Fire()
            end
+				end
+          
 
         end
     end
@@ -275,7 +284,7 @@ end)
 
 
 task.spawn(function() --refresh hosting pos
-    while task.wait(10) do
+    while task.wait(15) do
         if not is_in_game then
             if not opps_paying.Visible and not opps_paid.Visible then
                 host_minigame()
