@@ -3,7 +3,7 @@ local reps = game:GetService("ReplicatedStorage")
 local vu = game:GetService("VirtualUser")
 
 local plr = ps.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
+local char = plr.Character or plr.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
 
 local plr_gui = plr:WaitForChild("PlayerGui")
