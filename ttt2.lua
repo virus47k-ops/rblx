@@ -204,7 +204,6 @@ local function host_minigame()
 	reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
 	task.wait(5)
     if current_pass_type == 1 then
-        current_pass_type = 2
         reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args1))
         next_gamepass1 += 1
         if next_gamepass1 > 10 then
@@ -212,7 +211,6 @@ local function host_minigame()
         end
         args1[3].assetId = gamepasses1[next_gamepass1]
     else
-        current_pass_type = 1
         reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args2))
         next_gamepass2 +=1
         if next_gamepass2 > 10 then
@@ -220,6 +218,7 @@ local function host_minigame()
         end
         args2[3].assetId = gamepasses2[next_gamepass2]
     end
+	current_pass_type = math.random(2)
 end
 
 host_minigame()
