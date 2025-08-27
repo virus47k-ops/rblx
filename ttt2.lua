@@ -19,6 +19,8 @@ local battle_results = plr_gui.BattleResults["Middle Middle"]
 
 local is_in_game = false
 
+local current_pass_type = 1
+
 
 ------------------------// Tic Tac Toe ai stuff //------------------------
 -- BOT is always ⭕
@@ -123,9 +125,20 @@ end
 
 --------------------------------------------------------------------------
 
+local gamepasses1 = {
+    [1] = "1345632481",
+    [2] = "1398270268",
+    [3] = "1397459198",
+    [4] = "1397219230",
+    [5] = "1395230060",
+    [6] = "1400188442",
+    [7] = "1397579165",
+    [8] = "1398168394",
+    [9] = "1397483167",
+    [10] = "1398292299",
+}
 
-
-local gamepasses = { 
+local gamepasses2 = { 
     [1] = "1341716162",
     [2] = "1407904920",
     [3] = "1407926962",
@@ -138,9 +151,20 @@ local gamepasses = {
     [10] = "1410530305",
 }
 
-local next_gamepass = 1
+local next_gamepass1 = 1
+local next_gamepass2 = 1
 
-local args = {
+local args1 = {
+    [1] = "TicTacToe",
+    [2] = 10,
+    [3] = {
+        ["assetType"] = "GamePass",
+        ["assetId"] = "1345632481"
+    },
+    [4] = true
+}
+
+local args2 = {
     [1] = "TicTacToe",
     [2] = 20,
     [3] = {
@@ -150,17 +174,6 @@ local args = {
     [4] = true
 }
 
---[[
-local args2 = {
-    [1] = "TicTacToe",
-    [2] = 0,
-    [3] = {
-        ["assetType"] = "",
-        ["assetId"] = ""
-    },
-    [4] = true
-}
-    ]]
 
 --// anti afk //--
 plr.Idled:Connect(function()
@@ -190,13 +203,24 @@ local function host_minigame()
 	task.wait()
 	reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
 	task.wait(5)
-    reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args))
-
-    next_gamepass = next_gamepass + 1
-    if next_gamepass > 10 then
-        next_gamepass = 1
+    if current_pass_type == 1 then
+        reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args1))
+        next_gamepass1 += 1
+        if next_gamepass1 > 10 then
+            next_gamepass1 = 1
+        end
+        args1[3].assetId = gamepasses1[next_gamepass1]
+    else
+        reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args2))
+        next_gamepass2 +=1
+        if next_gamepass2 > 10 then
+            next_gamepass2 = 1
+        end
+        args2[3].assetId = gamepasses2[next_gamepass2]
     end
-    args[3].assetId = gamepasses[next_gamepass]
+    current_pass_type = 1 and 2 or 1
+
+   
 end
 
 host_minigame()
