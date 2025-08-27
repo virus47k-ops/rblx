@@ -5,7 +5,6 @@ local vu = game:GetService("VirtualUser")
 local plr = ps.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
-
 local plr_gui = plr:WaitForChild("PlayerGui")
 
 local waiting_4_opp_window = plr_gui.WaitingForOpponent["Bottom Middle"].WaitingForOpponent
@@ -21,8 +20,6 @@ local ttt_dir = plr_gui.TicTacToe
 local battle_results = plr_gui.BattleResults["Middle Middle"]
 
 local is_in_game = false
-
-local current_pass_type = 1
 
 
 ------------------------// Tic Tac Toe ai stuff //------------------------
@@ -128,7 +125,9 @@ end
 
 --------------------------------------------------------------------------
 
-local gamepasses1 = {
+
+
+local gamepasses = {
     [1] = "1345632481",
     [2] = "1398270268",
     [3] = "1397459198",
@@ -141,23 +140,9 @@ local gamepasses1 = {
     [10] = "1398292299",
 }
 
-local gamepasses2 = { 
-    [1] = "1341716162",
-    [2] = "1407904920",
-    [3] = "1407926962",
-    [4] = "1408082517",
-    [5] = "1408002510",
-    [6] = "1408032649",
-    [7] = "1407388122",
-    [8] = "1407781230",
-    [9] = "1407956740",
-    [10] = "1410530305",
-}
+local next_gamepass = 1
 
-local next_gamepass1 = 1
-local next_gamepass2 = 1
-
-local args1 = {
+local args = {
     [1] = "TicTacToe",
     [2] = 10,
     [3] = {
@@ -167,16 +152,17 @@ local args1 = {
     [4] = true
 }
 
+--[[
 local args2 = {
     [1] = "TicTacToe",
-    [2] = 20,
+    [2] = 0,
     [3] = {
-        ["assetType"] = "GamePass",
-        ["assetId"] = "1341716162"
+        ["assetType"] = "",
+        ["assetId"] = ""
     },
     [4] = true
 }
-
+    ]]
 
 --// anti afk //--
 plr.Idled:Connect(function()
@@ -206,22 +192,13 @@ local function host_minigame()
 	task.wait()
 	reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
 	task.wait(5)
-    if current_pass_type == 1 then
-        reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args1))
-        next_gamepass1 += 1
-        if next_gamepass1 > 10 then
-            next_gamepass1 = 1
-        end
-        args1[3].assetId = gamepasses1[next_gamepass1]
-    else
-        reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args2))
-        next_gamepass2 +=1
-        if next_gamepass2 > 10 then
-            next_gamepass2 = 1
-        end
-        args2[3].assetId = gamepasses2[next_gamepass2]
+    reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args))
+
+    next_gamepass = next_gamepass + 1
+    if next_gamepass > 10 then
+        next_gamepass = 1
     end
-    current_pass_type = math.random(2)
+    args[3].assetId = gamepasses[next_gamepass]
 end
 
 host_minigame()
@@ -303,18 +280,18 @@ battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
         for _, conn in ipairs(getconnections(child.Background.Close.MouseButton1Click)) do
             conn:Fire()
         end
-         ---------------------
-         hum:MoveTo(Vector3.new(math.random(70, 72), 21, -math.random(15, 30)))
-         move_conn = hum.MoveToFinished:Connect(function()
-             move_conn:Disconnect()
-         end)
-         task.spawn(function() --stop moving to the wheel if ingame
-             while task.wait(1) and hum and hum.MoveTo and is_in_game do
-                 hum:MoveTo(hum.RootPart.Position) -- stops movement
-                 break
-             end
-         end)
-     ---------------------
+        ---------------------
+        hum:MoveTo(Vector3.new(math.random(70, 72), 21, -math.random(15, 30)))
+        move_conn = hum.MoveToFinished:Connect(function()
+            move_conn:Disconnect()
+        end)
+        task.spawn(function() --stop moving to the wheel if ingame
+            while task.wait(1) and hum and hum.MoveTo and is_in_game do
+                hum:MoveTo(hum.RootPart.Position) -- stops movement
+                break
+            end
+        end)
+    ---------------------
         host_minigame()
     end
 end)
