@@ -3,6 +3,9 @@ local reps = game:GetService("ReplicatedStorage")
 local vu = game:GetService("VirtualUser")
 
 local plr = ps.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+
 local plr_gui = plr:WaitForChild("PlayerGui")
 
 local waiting_4_opp_window = plr_gui.WaitingForOpponent["Bottom Middle"].WaitingForOpponent
@@ -204,6 +207,7 @@ local function host_minigame()
 	reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
 	task.wait(5)
     if current_pass_type == 1 then
+        current_pass_type = 2
         reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args1))
         next_gamepass1 += 1
         if next_gamepass1 > 10 then
@@ -211,6 +215,7 @@ local function host_minigame()
         end
         args1[3].assetId = gamepasses1[next_gamepass1]
     else
+        current_pass_type = 1
         reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args2))
         next_gamepass2 +=1
         if next_gamepass2 > 10 then
@@ -218,7 +223,6 @@ local function host_minigame()
         end
         args2[3].assetId = gamepasses2[next_gamepass2]
     end
-	current_pass_type = math.random(2)
 end
 
 host_minigame()
@@ -300,6 +304,18 @@ battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
         for _, conn in ipairs(getconnections(child.Background.Close.MouseButton1Click)) do
             conn:Fire()
         end
+         ---------------------
+         hum:MoveTo(Vector3.new(math.random(70, 72), 21, -math.random(15, 30)))
+         move_conn = hum.MoveToFinished:Connect(function()
+             move_conn:Disconnect()
+         end)
+         task.spawn(function() --stop moving to the wheel if ingame
+             while task.wait(1) and hum and hum.MoveTo and is_in_game do
+                 hum:MoveTo(hum.RootPart.Position) -- stops movement
+                 break
+             end
+         end)
+     ---------------------
         host_minigame()
     end
 end)
