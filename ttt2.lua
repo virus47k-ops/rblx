@@ -261,7 +261,7 @@ ttt_dir.ChildAdded:Connect(function(ui)--play buttons
 
             local btns = ui.Buttons
             
-            math.randomseed(tick()) -- ensure randomness changes for if its bot's 1st move
+            math.randomseed(os.clock() * 1000) -- ensure randomness changes for if its bot's 1st move
 
             for i = 1, 9 do
                 board[i] = ""
