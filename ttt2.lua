@@ -1,6 +1,7 @@
 local ps = game:GetService("Players")
 local reps = game:GetService("ReplicatedStorage")
 local vu = game:GetService("VirtualUser")
+local https = game:GetService("HttpService")
 
 local plr = ps.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
@@ -13,6 +14,8 @@ local opps_left = waiting_4_opp_window.Background["Step1.5"]
 local opps_paying = waiting_4_opp_window.Background["Step2"]
 local opps_paid = waiting_4_opp_window.Background["Step3"]
 local game_confirmed = waiting_4_opp_window.Background["Step3.5"]
+local timer = waiting_4_opp_window.Background.Timer.TextLabel
+local vs_txt = waiting_4_opp_window.Background.Inside.DisplayName
 
 
 
@@ -177,6 +180,9 @@ local args2 = {
     [4] = true
 }
 
+local heckler_args = {
+    [1] = "Roblox"
+}
 
 --// anti afk //--
 plr.Idled:Connect(function()
@@ -247,6 +253,15 @@ opps_left:GetPropertyChangedSignal("Visible"):Connect(function() --opps refused 
         if opps_left.Visible then
             host_minigame()
         end
+    end
+end)
+
+timer:GetPropertyChangedSignal("Text"):Connect(function() --opps refused to pay
+    if timer.Text == "Time remaining to pay: 1" then --possible heckler name is saved
+        heckler_args[1] = string.gsub(string.match(vs_txt.Text, "VS%s+(.+)"), "^%s*(.-)%s*$", "%1")
+
+    elseif timer.Text == "Time remaining to pay: 0" then --heckler gets blacklisted
+        reps.RemoteCalls.General.Blacklist:FireServer(unpack(heckler_args))
     end
 end)
 
