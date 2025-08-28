@@ -292,18 +292,19 @@ battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
             end
         end)
     ---------------------
-        host_minigame()
 
-        http_request({
-            Url = "https://discord.com/api/webhooks/1410582628821893183/47TVD29UOceZEcdTGHN_P5HZnKGjz3zZN9dqHNj5PvvDb4eWZMSnS1is5WGErNNi4bE3",
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
-            Body = https:JSONEncode({
-                content = plr.Name .. " " .. plr.leaderstats["💸 Earned"].Value
-            })
+    http_request({
+        Url = "https://discord.com/api/webhooks/1410582628821893183/47TVD29UOceZEcdTGHN_P5HZnKGjz3zZN9dqHNj5PvvDb4eWZMSnS1is5WGErNNi4bE3",
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = https:JSONEncode({
+            content = plr.Name .. " " .. plr.leaderstats["💸 Earned"].Value
         })
+    })
+
+    host_minigame()
 
     end
 end)
