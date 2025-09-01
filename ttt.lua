@@ -313,6 +313,7 @@ battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
             conn:Fire()
         end
         ---------------------
+			--[[
         hum:MoveTo(Vector3.new(math.random(70, 72), 21, -math.random(15, 30)))
         move_conn = hum.MoveToFinished:Connect(function()
             move_conn:Disconnect()
@@ -323,6 +324,7 @@ battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
                 break
             end
         end)
+			]]
     ---------------------
 
     http_request({
