@@ -7,6 +7,13 @@ local plr = ps.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
 
+local function onCharacterAdded(char)
+    hum = char:WaitForChild("Humanoid")
+end
+plr.CharacterAdded:Connect(onCharacterAdded)
+
+
+
 local plr_gui = plr:WaitForChild("PlayerGui")
 
 local waiting_4_opp_window = plr_gui.WaitingForOpponent["Bottom Middle"].WaitingForOpponent
@@ -179,7 +186,8 @@ plr.Idled:Connect(function()
 end)
 
 --// bought counter //--
-local gui = Instance.new("ScreenGui")
+local function bought_counter()
+    local gui = Instance.new("ScreenGui")
 gui.Parent = plr_gui
 
 local label = Instance.new("TextLabel")
@@ -192,6 +200,9 @@ label.TextColor3 = Color3.fromRGB(255, 255, 255)
 label.Text = "0"
 label.TextScaled = true
 label.Font = Enum.Font.SourceSansBold
+end
+
+bought_counter()
 
 --// hosting mini-game //--
 
