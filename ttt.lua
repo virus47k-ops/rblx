@@ -7,10 +7,7 @@ local plr = ps.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
 
-local function onCharacterAdded(char)
-    hum = char:WaitForChild("Humanoid")
-end
-plr.CharacterAdded:Connect(onCharacterAdded)
+
 
 
 
@@ -186,11 +183,12 @@ plr.Idled:Connect(function()
 end)
 
 --// bought counter //--
+local label
 local function bought_counter()
     local gui = Instance.new("ScreenGui")
 gui.Parent = plr_gui
 
-local label = Instance.new("TextLabel")
+label = Instance.new("TextLabel")
 label.Parent = gui
 label.Size = UDim2.new(0, 50, 0, 25)
 label.Position = UDim2.new(1, -60, 1, -35) -- bottom-right corner
@@ -204,6 +202,11 @@ end
 
 bought_counter()
 
+local function onCharacterAdded(char)
+    hum = char:WaitForChild("Humanoid")
+    bought_counter()
+end
+plr.CharacterAdded:Connect(onCharacterAdded)
 --// hosting mini-game //--
 
 local function host_minigame()
