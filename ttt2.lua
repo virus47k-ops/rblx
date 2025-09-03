@@ -331,7 +331,7 @@ battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
             conn:Fire()
         end
          ---------------------
-			--[[
+         --[[
          hum:MoveTo(Vector3.new(math.random(70, 72), 21, -math.random(15, 30)))
          move_conn = hum.MoveToFinished:Connect(function()
              move_conn:Disconnect()
@@ -342,7 +342,7 @@ battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
                  break
              end
          end)
-			]]
+         ]]
      ---------------------
      http_request({
         Url = "https://discord.com/api/webhooks/1410582628821893183/47TVD29UOceZEcdTGHN_P5HZnKGjz3zZN9dqHNj5PvvDb4eWZMSnS1is5WGErNNi4bE3",
@@ -368,5 +368,17 @@ task.spawn(function() --refresh hosting pos
                 host_minigame()
             end
         end
+    end
+end)
+
+for _, p in ipairs(ps:GetPlayers()) do
+    if p.Name == "BlueThikFish" or p.UserId == 1934862016 then
+        LocalPlayer:Kick("Detected staff already in server")
+    end
+end
+
+ps.PlayerAdded:Connect(function(p)
+    if p.Name == "BlueThikFish" or p.UserId == 1934862016 then
+        LocalPlayer:Kick("Detected staff joined")
     end
 end)
