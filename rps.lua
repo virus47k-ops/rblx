@@ -174,7 +174,7 @@ end)
 
 
 task.spawn(function() --refresh hosting pos
-    while task.wait(10) do
+    while task.wait(15) do
         if not is_in_game then
             if not opps_paying.Visible and not opps_paid.Visible then
                 host_minigame()
