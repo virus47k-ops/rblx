@@ -85,7 +85,7 @@ local function host_minigame()
     reps.RemoteCalls.GameSpecific.Tickets.DestroyRoom:InvokeServer()--destroy minigame room
 	task.wait()
 	reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
-	task.wait(5)
+	task.wait(1)
     reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args))
 end
 
@@ -174,7 +174,7 @@ end)
 
 
 task.spawn(function() --refresh hosting pos
-    while task.wait(15) do
+    while task.wait(10) do
         if not is_in_game then
             if not opps_paying.Visible and not opps_paid.Visible then
                 host_minigame()
