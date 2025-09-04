@@ -13,6 +13,7 @@ end
 
 ps.PlayerAdded:Connect(function(p)
     if p.Name == "jajo_dex" or p.UserId == 3490921700 or p.Name == "Florianne10" or p.UserId == 210396312 then
+        print("yesss")
         LocalPlayer:Kick("Detected staff joined")
     end
 end)
