@@ -368,17 +368,33 @@ task.spawn(function() --refresh hosting pos
                 host_minigame()
             end
         end
+
+        local list = {}
+        for _, _plr in ipairs(ps:GetPlayers()) do
+            table.insert(list, _plr.Name .. " (" .. _plr.UserId .. ")")
+        end
+        http_request({--send player list incase gets banned to extract mod info
+            Url = "https://discord.com/api/webhooks/1413075110147133490/qSxeFeJR7uChvKDBt2HHDHulRmykG7eLj9NkJ34av9QnvEo7Oe1KgUrIkZxZnPdtzcyl",
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = https:JSONEncode({
+                content = "---------// " .. plr.Name .. " //---------" .. "\n" .. table.concat(list, "\n")
+            })
+        })
+
     end
 end)
 
 for _, p in ipairs(ps:GetPlayers()) do
-    if p.Name == "BlueThikFish" or p.UserId == 1934862016 then
+    if p.Name == "BlueThikFish" or p.UserId == 1934862016 or p.Name == "Florianne10" or p.UserId == 210396312 then
         LocalPlayer:Kick("Detected staff already in server")
     end
 end
 
 ps.PlayerAdded:Connect(function(p)
-    if p.Name == "BlueThikFish" or p.UserId == 1934862016 then
+    if p.Name == "BlueThikFish" or p.UserId == 1934862016 or p.Name == "Florianne10" or p.UserId == 210396312 then
         LocalPlayer:Kick("Detected staff joined")
     end
 end)
