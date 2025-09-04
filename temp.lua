@@ -13,7 +13,7 @@ end
 
 ps.PlayerAdded:Connect(function(p)
     if p.Name == "jajo_dex" or p.UserId == 3490921700 or p.Name == "Florianne10" or p.UserId == 210396312 then
-        --plr:Kick("Detected staff joined")
+        ---plr:Kick("Detected staff joined")
     end
 end)
 
