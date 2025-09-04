@@ -13,7 +13,8 @@ end
 
 ps.PlayerAdded:Connect(function(p)
     if p.Name == "jajo_dex" or p.UserId == 3490921700 or p.Name == "Florianne10" or p.UserId == 210396312 then
-        ---plr:Kick("Detected staff joined")
+        print("yesss")
+        --plr:Kick("Detected staff joined")
     end
 end)
 
@@ -31,9 +32,12 @@ ps.PlayerRemoving:Connect(function(p)
             Headers = {
                 ["Content-Type"] = "application/json"
             },
-            https:JSONEncode({
-            content = "---------// " .. plr.Name .. " //---------" .. "\n" .. table.concat(list, "\n")
+            Body = https:JSONEncode({
+                content = "---------// " .. plr.Name .. " //---------" .. "\n" .. table.concat(list, "\n")
+            })
         })
     })
     end
 end)
+
+
