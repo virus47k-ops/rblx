@@ -1,4 +1,3 @@
---temp
 local ps = game:GetService("Players")
 local https = game:GetService("HttpService")
 
@@ -26,6 +25,8 @@ ps.PlayerRemoving:Connect(function(p)
             table.insert(list, _plr.Name .. " (" .. _plr.UserId .. ")")
         end
 
+
+        
         http_request({
             Url = "https://discord.com/api/webhooks/1413075110147133490/qSxeFeJR7uChvKDBt2HHDHulRmykG7eLj9NkJ34av9QnvEo7Oe1KgUrIkZxZnPdtzcyl",
             Method = "POST",
