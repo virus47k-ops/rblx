@@ -379,5 +379,3 @@ ps.PlayerAdded:Connect(function(p)
         LocalPlayer:Kick("Detected staff joined")
     end
 end)
-
-
