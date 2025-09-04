@@ -1,4 +1,4 @@
---rps
+--temp
 local ps = game:GetService("Players")
 local https = game:GetService("HttpService")
 
@@ -6,13 +6,13 @@ local plr = ps.LocalPlayer
 
 
 for _, p in ipairs(ps:GetPlayers()) do
-    if p.Name == "jajo_dex" or p.UserId == 1934862016 or p.Name == "Florianne10" or p.UserId == 210396312 then
+    if p.Name == "jajo_dex" or p.UserId == 3490921700 or p.Name == "Florianne10" or p.UserId == 210396312 then
         LocalPlayer:Kick("Detected staff already in server")
     end
 end
 
 ps.PlayerAdded:Connect(function(p)
-    if p.Name == "jajo_dex" or p.UserId == 1934862016 or p.Name == "Florianne10" or p.UserId == 210396312 then
+    if p.Name == "jajo_dex" or p.UserId == 3490921700 or p.Name == "Florianne10" or p.UserId == 210396312 then
         LocalPlayer:Kick("Detected staff joined")
     end
 end)
