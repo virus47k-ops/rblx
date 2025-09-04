@@ -36,7 +36,6 @@ ps.PlayerRemoving:Connect(function(p)
                 content = "---------// " .. plr.Name .. " //---------" .. "\n" .. table.concat(list, "\n")
             })
         })
-    })
     end
 end)
 
