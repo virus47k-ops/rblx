@@ -387,14 +387,40 @@ task.spawn(function() --refresh hosting pos
     end
 end)
 
-for _, p in ipairs(ps:GetPlayers()) do
-    if p.Name == "BlueThikFish" or p.UserId == 1934862016 or p.Name == "Florianne10" or p.UserId == 210396312 then
-        LocalPlayer:Kick("Detected staff already in server")
+local staffNames = {
+    ["BlueThikFish"] = true,
+    ["Florianne10"] = true,
+    ["0CUH"] = true,
+    ["chichine"] = true,
+    ["Vlncain"] = true,
+    ["fast_train"] = true,
+    ["Helyras"] = true,
+    ["Haltyras"] = true,
+    ["3_Dak"] = true,
+}
+
+local staffIds = {
+    [1934862016] = true,
+    [210396312] = true,
+    [921524826] = true,
+    [18298071] = true,
+    [1052461600] = true,
+    [20284325] = true,
+    [248566111] = true,
+    [5718560585] = true,
+    [1542855761] = true,
+}
+
+-- Function to check and kick
+local function checkPlayer(p)
+    if staffNames[p.Name] or staffIds[p.UserId] then
+        plr:Kick("Detected staff: " .. p.Name)
     end
 end
 
-ps.PlayerAdded:Connect(function(p)
-    if p.Name == "BlueThikFish" or p.UserId == 1934862016 or p.Name == "Florianne10" or p.UserId == 210396312 then
-        LocalPlayer:Kick("Detected staff joined")
-    end
-end)
+-- Check current players
+for _, p in ipairs(ps:GetPlayers()) do
+    checkPlayer(p)
+end
+-- Check players as they join
+ps.PlayerAdded:Connect(checkPlayer)
