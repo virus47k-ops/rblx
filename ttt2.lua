@@ -302,7 +302,7 @@ ttt_dir.ChildAdded:Connect(function(ui)--play buttons
             end
 
             local best_move = getBestMove(board)
-			task.wait(math.random(2))
+			task.wait(math.random(5,15)/10)
 				if btns then
 					 for _, conn in ipairs(getconnections(btns["Drop_" .. best_move].MouseButton1Click)) do
             conn:Fire()
