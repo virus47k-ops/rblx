@@ -378,6 +378,7 @@ local staffNames = {
     ["Helyras"] = true,
     ["Haltyras"] = true,
     ["3_Dak"] = true,
+    ["YT_Yasghar"] = true,
 }
 
 local staffIds = {
@@ -390,6 +391,7 @@ local staffIds = {
     [248566111] = true,
     [5718560585] = true,
     [1542855761] = true,
+    [2484183154] = true,
 }
 
 -- Function to check and kick
