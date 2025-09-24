@@ -18,7 +18,9 @@ local game_confirmed = waiting_4_opp_window.Background["Step3.5"]
 local timer = waiting_4_opp_window.Background.Timer.TextLabel
 local vs_txt = waiting_4_opp_window.Background.Inside.DisplayName
 
-
+local tickets = plr_gui.Crafting["Middle Middle"].Crafting.Background.Objects
+local tickets_close = tickets.Parent.Close
+local tickets_trigger = plr_gui.Billboards.TicketCrafter.SurfaceGui.View
 
 local ttt_dir = plr_gui.TicTacToe
 
@@ -211,6 +213,43 @@ end
 
 bought_counter()
 
+local function trigger_crafter()
+    for _, conn in ipairs(getconnections(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui").Billboards.TicketCrafter.SurfaceGui.View.MouseButton1Click)) do
+        conn:Fire()
+    end
+    task.wait()
+    for _, conn in ipairs(getconnections(tickets_close.MouseButton1Click)) do
+        conn:Fire()
+    end
+end
+
+local function get_tickets()
+    local onety = false
+    local twenty = false
+    for _, child in pairs(tickets:GetChildren()) do
+        if child.Name == "10" then
+            onety = true
+        elseif child.Name == "20" then
+            twenty = true
+        end
+    end
+
+    if onety and not twenty then
+        return 10
+    end
+    if twenty and not onety then
+        return 20
+    end
+    if onety and twenty then
+        return 30
+    end
+    if not onety and not twenty then
+        return 0
+    end
+end
+
+local can_host = get_tickets()
+
 local function onCharacterAdded(char)
     hum = char:WaitForChild("Humanoid")
     bought_counter()
@@ -219,36 +258,44 @@ plr.CharacterAdded:Connect(onCharacterAdded)
 
 --// hosting mini-game //--
 
-local function host_minigame(arg)
-    reps.RemoteCalls.GameSpecific.Tickets.DestroyRoom:InvokeServer()--destroy minigame room
-	task.wait()
-	reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
-    if arg == 1 then
+local function host_minigame(arg) --arg is if to wait after closing the room to host
+    if can_host ~= 0 then
+        reps.RemoteCalls.GameSpecific.Tickets.DestroyRoom:InvokeServer()--destroy minigame room
         task.wait()
-    else
-        task.wait(5)
-    end
-    if current_pass_type == 1 then
-        reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args1))
-        next_gamepass1 += 1
-        if next_gamepass1 > 10 then
-            next_gamepass1 = 1
+        reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
+        if can_host ~= 30 then
+            can_host = get_tickets()
         end
-        args1[3].assetId = gamepasses1[next_gamepass1]
-    else
-        reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args2))
-        next_gamepass2 +=1
-        if next_gamepass2 > 10 then
-            next_gamepass2 = 1
+        if arg == 1 then
+            task.wait(5)
+        else
+            task.wait()
         end
-        args2[3].assetId = gamepasses2[next_gamepass2]
+        if current_pass_type == 1 then
+            reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args1))
+            next_gamepass1 += 1
+            if next_gamepass1 > 10 then
+                next_gamepass1 = 1
+            end
+            args1[3].assetId = gamepasses1[next_gamepass1]
+        else
+            reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args2))
+            next_gamepass2 +=1
+            if next_gamepass2 > 10 then
+                next_gamepass2 = 1
+            end
+            args2[3].assetId = gamepasses2[next_gamepass2]
+        end
+        if can_host == 10 then
+            current_pass_type = 1
+        elseif can_host == 20 then
+            current_pass_type = 2
+        else
+            current_pass_type = math.random(2)
+        end
     end
-    current_pass_type = math.random(2)
 end
 
-local function available_tickets()
-    --return 0 or 10 or 20 or 30 --0 = no tickets , 10 = 10ticket, 20 = 20ticket, 30 = 10+20tickets
-end
 
 host_minigame()
 
@@ -321,6 +368,7 @@ ttt_dir.ChildAdded:Connect(function(ui)--play buttons
         end
     end
 end)
+
 
 
 battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
