@@ -217,7 +217,7 @@ local function trigger_crafter()
     for _, conn in ipairs(getconnections(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui").Billboards.TicketCrafter.SurfaceGui.View.MouseButton1Click)) do
         conn:Fire()
     end
-    task.wait()
+    task.wait(1)
     for _, conn in ipairs(getconnections(tickets_close.MouseButton1Click)) do
         conn:Fire()
     end
