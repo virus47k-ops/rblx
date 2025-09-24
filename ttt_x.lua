@@ -247,7 +247,7 @@ local function get_tickets()
 end
 
 local can_host = get_tickets()
-
+print(can_host)
 local function onCharacterAdded(char)
     hum = char:WaitForChild("Humanoid")
     bought_counter()
