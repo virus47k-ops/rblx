@@ -212,7 +212,7 @@ label.Font = Enum.Font.SourceSansBold
 end
 
 bought_counter()
-print(1)
+
 local function trigger_crafter()
     for _, conn in ipairs(getconnections(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui").Billboards.TicketCrafter.SurfaceGui.View.MouseButton1Click)) do
         conn:Fire()
@@ -222,7 +222,7 @@ local function trigger_crafter()
         conn:Fire()
     end
 end
-print(2)
+
 local function get_tickets()
     local onety = false
     local twenty = false
@@ -247,9 +247,9 @@ local function get_tickets()
         return 0
     end
 end
-print(3)
+
 local can_host = get_tickets()
-print(4)
+
 local function onCharacterAdded(char)
     hum = char:WaitForChild("Humanoid")
     bought_counter()
@@ -293,12 +293,15 @@ local function host_minigame(arg) --arg is if to wait after closing the room to 
         else
             current_pass_type = math.random(2)
         end
+    else
+        reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
+        can_host = get_tickets()
     end
 end
-print(5)
+
 
 host_minigame()
-print(6)
+
 game_confirmed:GetPropertyChangedSignal("Visible"):Connect(function() --opps joined for free and starting minigame
     if not is_in_game then
         if game_confirmed.Visible then
@@ -421,7 +424,6 @@ task.spawn(function() --refresh hosting pos
     while task.wait(15) do
         if not is_in_game then
             if not opps_paying.Visible and not opps_paid.Visible then
-					print(15)
                 host_minigame()
             end
         end
