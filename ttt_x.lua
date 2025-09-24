@@ -213,17 +213,15 @@ end
 
 bought_counter()
 
-local function trigger_crafter()
+
+local function get_tickets()
     for _, conn in ipairs(getconnections(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui").Billboards.TicketCrafter.SurfaceGui.View.MouseButton1Click)) do
         conn:Fire()
     end
-    task.wait(1)
+    task.wait()
     for _, conn in ipairs(getconnections(tickets_close.MouseButton1Click)) do
         conn:Fire()
     end
-end
-
-local function get_tickets()
     local onety = false
     local twenty = false
     for _, child in pairs(tickets:GetChildren()) do
