@@ -247,7 +247,7 @@ local function get_tickets()
 end
 
 local can_host = get_tickets()
-print(can_host)
+
 local function onCharacterAdded(char)
     hum = char:WaitForChild("Humanoid")
     bought_counter()
@@ -420,6 +420,7 @@ end)
 
 task.spawn(function() --refresh hosting pos
     while task.wait(15) do
+			print(can_host)
         if not is_in_game then
             if not opps_paying.Visible and not opps_paid.Visible then
                 host_minigame()
