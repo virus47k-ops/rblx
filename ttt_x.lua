@@ -18,10 +18,6 @@ local game_confirmed = waiting_4_opp_window.Background["Step3.5"]
 local timer = waiting_4_opp_window.Background.Timer.TextLabel
 local vs_txt = waiting_4_opp_window.Background.Inside.DisplayName
 
-local tickets = plr_gui.Crafting["Middle Middle"].Crafting.Background.Objects
-local tickets_close = tickets.Parent.Close
-local tickets_trigger = plr_gui.Billboards.TicketCrafter.SurfaceGui.View
-
 local ttt_dir = plr_gui.TicTacToe
 
 local battle_results = plr_gui.BattleResults["Middle Middle"]
@@ -215,10 +211,14 @@ bought_counter()
 
 
 local function get_tickets()
-    for _, conn in ipairs(getconnections(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui").Billboards.TicketCrafter.SurfaceGui.View.MouseButton1Click)) do
+    local tickets = plr_gui.Crafting["Middle Middle"].Crafting.Background.Objects
+    local tickets_close = tickets.Parent.Close
+    local tickets_trigger = plr_gui.Billboards.TicketCrafter.SurfaceGui.View
+
+    for _, conn in ipairs(getconnections(tickets_trigger.MouseButton1Click)) do
         conn:Fire()
     end
-    task.wait()
+    task.wait(1)
     for _, conn in ipairs(getconnections(tickets_close.MouseButton1Click)) do
         conn:Fire()
     end
@@ -247,6 +247,7 @@ local function get_tickets()
 end
 
 local can_host = get_tickets()
+
 
 local function onCharacterAdded(char)
     hum = char:WaitForChild("Humanoid")
