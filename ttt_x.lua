@@ -266,8 +266,7 @@ local function host_minigame(arg) --arg is if to wait after closing the room to 
             can_host = get_tickets()
         end
         if arg == 1 then
-            --task.wait(5)
-			task.wait()
+            task.wait(5)
         else
             task.wait()
         end
