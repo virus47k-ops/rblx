@@ -266,9 +266,9 @@ local function host_minigame(arg) --arg is if to wait after closing the room to 
             can_host = get_tickets()
         end
         if arg == 1 then
-            task.wait(5)
-        else
             task.wait()
+        else
+            task.wait(5)
         end
         if current_pass_type == 1 then
             reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args1))
