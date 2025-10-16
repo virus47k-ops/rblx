@@ -350,23 +350,22 @@ ttt_dir.ChildAdded:Connect(function(ui)--play buttons
             for i = 1, 9 do
                 board[i] = ""
             end
-            
+            local empty_cells_count = 9
             for i = 1, 9 do
                 local txt = btns["Drop_"..i].TextLabel.Text
                 if txt == "⭕" or txt == "🇽" then
                     board[i] = txt
+					empty_cells_count -= 1
                 end
             end
-
+			​
             local best_move = getBestMove(board)
-			task.wait(math.random(5,15)/10)
+			task.wait((1.25*empty_cells_count+3.75)/10) --task.wait(math.random(5,15)/10)
 				if btns then
-					 for _, conn in ipairs(getconnections(btns["Drop_" .. best_move].MouseButton1Click)) do
-            conn:Fire()
-           end
+					for _, conn in ipairs(getconnections(btns["Drop_" .. best_move].MouseButton1Click)) do
+            			conn:Fire()
+          			end
 				end
-          
-
         end
     end
 end)
