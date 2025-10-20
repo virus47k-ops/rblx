@@ -18,8 +18,6 @@ local game_confirmed = waiting_4_opp_window.Background["Step3.5"]
 local timer = waiting_4_opp_window.Background.Timer.TextLabel
 local vs_txt = waiting_4_opp_window.Background.Inside.DisplayName
 
-
-
 local ttt_dir = plr_gui.TicTacToe
 
 local battle_results = plr_gui.BattleResults["Middle Middle"]
@@ -211,6 +209,7 @@ end
 
 bought_counter()
 
+
 local function onCharacterAdded(char)
     hum = char:WaitForChild("Humanoid")
     bought_counter()
@@ -219,11 +218,15 @@ plr.CharacterAdded:Connect(onCharacterAdded)
 
 --// hosting mini-game //--
 
-local function host_minigame()
+local function host_minigame(arg) --arg is if to wait after closing the room to host
     reps.RemoteCalls.GameSpecific.Tickets.DestroyRoom:InvokeServer()--destroy minigame room
-	task.wait()
-	reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
-	task.wait(5)
+    task.wait()
+    reps.RemoteCalls.GameSpecific.DailySpinner.ClaimDailySpinner:InvokeServer()
+    if arg == 1 then
+        task.wait(5)
+    else
+        task.wait()
+    end
     if current_pass_type == 1 then
         reps.RemoteCalls.GameSpecific.Tickets.CreateRoom:InvokeServer(unpack(args1))
         next_gamepass1 += 1
@@ -241,6 +244,7 @@ local function host_minigame()
     end
     current_pass_type = math.random(2)
 end
+
 
 host_minigame()
 
@@ -263,7 +267,7 @@ end)
 opps_left:GetPropertyChangedSignal("Visible"):Connect(function() --opps refused to pay
     if not is_in_game then
         if opps_left.Visible then
-            host_minigame()
+            host_minigame(1) --1 means it host on the spot no 5sec delay
         end
     end
 end)
@@ -313,6 +317,7 @@ ttt_dir.ChildAdded:Connect(function(ui)--play buttons
         end
     end
 end)
+
 
 
 battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
