@@ -417,34 +417,7 @@ battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
 
     end
 end)
-
-
-task.spawn(function() --refresh hosting pos
-    while task.wait(15) do
-        if not is_in_game then
-            if not opps_paying.Visible and not opps_paid.Visible then
-                host_minigame()
-            end
-        end
-
-        local list = {}
-        for _, _plr in ipairs(ps:GetPlayers()) do
-            table.insert(list, _plr.Name .. " (" .. _plr.UserId .. ")")
-        end
-        http_request({--send player list incase gets banned to extract mod info
-            Url = "https://discord.com/api/webhooks/1413075110147133490/qSxeFeJR7uChvKDBt2HHDHulRmykG7eLj9NkJ34av9QnvEo7Oe1KgUrIkZxZnPdtzcyl",
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
-            Body = https:JSONEncode({
-                content = "---------// " .. plr.Name .. " //---------" .. "\n" .. table.concat(list, "\n")
-            })
-        })
-
-    end
-end)
-
+--------------------------------------
 local staffNames = {
     ["BlueThikFish"] = true,
     ["Florianne10"] = true,
@@ -478,16 +451,43 @@ local staffIds = {
     [465117981] = true,
 }
 
--- Function to check and kick
-local function checkPlayer(p)
-    if staffNames[p.Name] or staffIds[p.UserId] then
-        plr:Kick("Detected staff: " .. p.Name)
+local function checkMods()
+    for _, p in ipairs(ps:GetPlayers()) do
+        if staffNames[p.Name] or staffIds[p.UserId] then
+            plr:Kick("Detected staff: " .. p.Name)
+        end
     end
 end
 
--- Check current players
-for _, p in ipairs(ps:GetPlayers()) do
-    checkPlayer(p)
-end
--- Check players as they join
-ps.PlayerAdded:Connect(checkPlayer)
+checkMods() --when joining server
+-------------------------------------------
+
+task.spawn(function() --refresh hosting pos
+    while task.wait(15) do
+        if not is_in_game then
+            checkMods() --if staff in server dc
+            if not opps_paying.Visible and not opps_paid.Visible then
+                host_minigame()
+            end
+        end
+
+        local list = {}
+        for _, _plr in ipairs(ps:GetPlayers()) do
+            table.insert(list, _plr.Name .. " (" .. _plr.UserId .. ")")
+        end
+        http_request({--send player list incase gets banned to extract mod info
+            Url = "https://discord.com/api/webhooks/1413075110147133490/qSxeFeJR7uChvKDBt2HHDHulRmykG7eLj9NkJ34av9QnvEo7Oe1KgUrIkZxZnPdtzcyl",
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = https:JSONEncode({
+                content = "---------// " .. plr.Name .. " //---------" .. "\n" .. table.concat(list, "\n")
+            })
+        })
+
+    end
+end)
+
+
+
