@@ -365,33 +365,7 @@ battle_results.ChildAdded:Connect(function(child)--won pop notif/game ended
     end
 end)
 
-
-task.spawn(function() --refresh hosting pos
-    while task.wait(15) do
-        if not is_in_game then
-            if not opps_paying.Visible and not opps_paid.Visible then
-                host_minigame()
-            end
-        end
-
-        local list = {}
-        for _, _plr in ipairs(ps:GetPlayers()) do
-            table.insert(list, _plr.Name .. " (" .. _plr.UserId .. ")")
-        end
-        http_request({--send player list incase gets banned to extract mod info
-            Url = "https://discord.com/api/webhooks/1413075110147133490/qSxeFeJR7uChvKDBt2HHDHulRmykG7eLj9NkJ34av9QnvEo7Oe1KgUrIkZxZnPdtzcyl",
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
-            Body = https:JSONEncode({
-                content = "---------// " .. plr.Name .. " //---------" .. "\n" .. table.concat(list, "\n")
-            })
-        })
-
-    end
-end)
-
+--------------------------------------
 local staffNames = {
     ["BlueThikFish"] = true,
     ["Florianne10"] = true,
@@ -425,16 +399,88 @@ local staffIds = {
     [465117981] = true,
 }
 
--- Function to check and kick
+local function checkMods()
+    for _, p in ipairs(ps:GetPlayers()) do
+        if staffNames[p.Name] or staffIds[p.UserId] then
+            plr:Kick("Detected staff: " .. p.Name)
+        end
+    end
+end
+
+checkMods() --when joining server
+--------------------------------------
+
+task.spawn(function() --refresh hosting pos
+    while task.wait(15) do
+        if not is_in_game then
+            checkMods() --if staff in server dc
+            if not opps_paying.Visible and not opps_paid.Visible then
+                host_minigame()
+            end
+        end
+
+        local list = {}
+        for _, _plr in ipairs(ps:GetPlayers()) do
+            table.insert(list, _plr.Name .. " (" .. _plr.UserId .. ")")
+        end
+        http_request({--send player list incase gets banned to extract mod info
+            Url = "https://discord.com/api/webhooks/1413075110147133490/qSxeFeJR7uChvKDBt2HHDHulRmykG7eLj9NkJ34av9QnvEo7Oe1KgUrIkZxZnPdtzcyl",
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = https:JSONEncode({
+                content = "---------// " .. plr.Name .. " //---------" .. "\n" .. table.concat(list, "\n")
+            })
+        })
+
+    end
+end)
+--[[
+local staffNames = {
+    ["BlueThikFish"] = true,
+    ["Florianne10"] = true,
+    ["0CUH"] = true,
+    ["chichine"] = true,
+    ["Vlncain"] = true,
+    ["fast_train"] = true,
+    ["Helyras"] = true,
+    ["Haltyras"] = true,
+    ["3_Dak"] = true,
+    ["YT_Yasghar"] = true,
+    ["fast_train"] = true,
+    ["X3ll3n"] = true,
+    ["shedowv"] = true,
+    
+}
+
+local staffIds = {
+    [1934862016] = true,
+    [210396312] = true,
+    [921524826] = true,
+    [18298071] = true,
+    [1052461600] = true,
+    [20284325] = true,
+    [248566111] = true,
+    [5718560585] = true,
+    [1542855761] = true,
+    [2484183154] = true,
+    [20284325] = true,
+    [32468810] = true,
+    [465117981] = true,
+}
+
+
 local function checkPlayer(p)
     if staffNames[p.Name] or staffIds[p.UserId] then
         plr:Kick("Detected staff: " .. p.Name)
     end
 end
 
--- Check current players
+
 for _, p in ipairs(ps:GetPlayers()) do
     checkPlayer(p)
 end
--- Check players as they join
+
 ps.PlayerAdded:Connect(checkPlayer)
+]]
